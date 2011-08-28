@@ -186,7 +186,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l android_secure_emmc -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -244,9 +244,6 @@ for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
             $ECHO "-a | --android_secure      Preserve the contents of /sdcard/.android_secure along with"
-            $ECHO "                           the other partitions being backed up, to easily switch roms."
-            $ECHO ""
-	    $ECHO "--android_secure_emmc      Preserve the contents of /emmc/.android_secure along with"
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
             $ECHO "-r | --restore             Will restore the last made backup which matches --subname"
@@ -399,11 +396,7 @@ for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -
             ANDROID_SECURE=1
             shift
             ;;
-        --android_secure_emmc)
-            ANDROID_SECURE_EMMC=1
-            shift
-            ;;
-	--restore)
+        --restore)
             RESTORE=1
             #$ECHO "restore"
             shift
@@ -820,11 +813,9 @@ if [ "$RESTORE" == 1 ]; then
 		$ECHO "Restore path: $RESTOREPATH"
                 $ECHO ""
 
-                umount /system /data /datadata 2>/dev/null
+                umount /system /data 2>/dev/null
 		mount /system 2>/dev/null
 		mount /data 2>/dev/null
-		mount /datadata 2>/dev/null
-
 		if [ "`mount | grep data`" == "" ]; then
 			$ECHO "error: unable to mount /data, aborting"	
 			exit 1
@@ -833,10 +824,7 @@ if [ "$RESTORE" == 1 ]; then
 			$ECHO "error: unable to mount /system, aborting"	
 			exit 1
 		fi
-		if [ "`mount | grep datadata`" == "" ]; then
-			$ECHO "error: unable to mount /datadata, aborting"	
-			exit 1
-		fi
+		
 		CWD=$PWD
 		cd $RESTOREPATH
 
@@ -869,8 +857,7 @@ if [ "$RESTORE" == 1 ]; then
                         umount /system 2>/dev/null
                         umount /data 2>/dev/null
                         umount /sdcard 2>/dev/null
-                        umount /datadata 2>/dev/null
-			exit 1
+                        exit 1
                     fi
                     $ECHO "Checking free space /sdcard for the decompression operation."
                     FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
@@ -881,8 +868,7 @@ if [ "$RESTORE" == 1 ]; then
                         umount /system 2>/dev/null
                         umount /data 2>/dev/null
                         umount /sdcard 2>/dev/null
-                        umount /datadata 2>/dev/null
-			exit 1
+                        exit 1
                     fi
                     $ECHO "Decompressing images, please wait...."
                     $ECHO ""
@@ -916,14 +902,11 @@ if [ "$RESTORE" == 1 ]; then
 		if [ `ls ext* 2>/dev/null | wc -l` == 0 ]; then
                     EXT=0
                 fi
-		# GNM : If there's no android_secure backup set android_secure to 0 so android_secure restore doesn't start                
+		# GNM : If there's no android_secure backup set androidsecure to 0 so android_secure restore doesn't start                
 		if [ `ls android_secure* 2>/dev/null | wc -l` == 0 ]; then
                     ANDROID_SECURE=0
                 fi
-		# GNM : If there's no android_secure backup set android_secure to 0 so android_secure restore doesn't start                
-		if [ `ls android_emmc_secure* 2>/dev/null | wc -l` == 0 ]; then
-                    ANDROID_SECURE_EMMC=0
-                fi
+
 
 		for image in boot recovery; do
                     if [ "$NOBOOT" == "1" -a "$image" == "boot" ]; then
@@ -942,16 +925,10 @@ if [ "$RESTORE" == 1 ]; then
 		    $flash_image $image $image.img $OUTPUT
                 done
 
-		for image in data system datadata; do
+		for image in data system; do
                         if [ "$NODATA" == "1" -a "$image" == "data" ]; then
                             $ECHO ""
                             $ECHO "Not restoring data image!"
-                            $ECHO ""
-                            continue
-                        fi
-			if [ "$NODATA" == "1" -a "$image" == "datadata" ]; then
-                            $ECHO ""
-                            $ECHO "Not restoring datadata image!"
                             $ECHO ""
                             continue
                         fi
@@ -1049,58 +1026,6 @@ if [ "$RESTORE" == 1 ]; then
 		fi
 
 
-		if [ "$ANDROID_SECURE_EMMC" == 1 ]; then
-			# GNM : Check if there's an emmc partition before starting to restore    		
-			if [ -e /dev/block/mmcblk0p3 ]; then
-	                    $ECHO "Restoring the android_secure contents on emmc."
-	                    CWD=`pwd`
-	                    cd /
-
-	                    if [ `mount | grep /emmc | wc -l` == 0 ]; then
-	                        mount /emmc
-	                    fi
-
-	                    cd $CWD
-	                    CHECK=`mount | grep /emmc`
-
-	                    if [ "$CHECK" == "" ]; then
-	                        $ECHO "Warning: --android_secure specified but unable to mount the android_secure partition."
-	                        $ECHO "Warning: your phone may be in an inconsistent state on reboot."
-	                        exit 1
-	                    else
-	                        CWD=`pwd`
-	                        cd /emmc
-	                        # Depending on whether the android_secure backup is compressed we do either or.
-	                        if [ -e $RESTOREPATH/android_emmc_secure.tar ]; then 
-	                            rm -rf .android_secur* 2>/dev/null
-	                            tar -x$TARFLAGS -f $RESTOREPATH/android_emmc_secure.tar
-	                        else
-	                            if [ -e $RESTOREPATH/android_emmc_secure.tgz ]; then
-	                                rm -rf .android_secur* 2>/dev/null
-	                                tar -x$TARFLAGS -zf $RESTOREPATH/android_emmc_secure.tgz
-	                            else
-	                                if [ -e $RESTOREPATH/android_emmc_secure.tar.bz2 ]; then
-	                                    rm -rf .android_secur* 2>/dev/null
-	                                    tar -x$TARFLAGS -jf $RESTOREPATH/android_emmc_secure.tar.bz2
-	                                else
-	                                    $ECHO "Warning: --android_secure specified but cannot find the android_secure backup."
-	                                   # $ECHO "Warning: your phone may be in an inconsistent state on reboot."
-	                                fi
-	                            fi
-	                        fi
-	                        cd $CWD
-	                        sync
-	                        umount /emmc
-	
-	                    fi
-			else
-	                        # Amon_RA : Just display a warning
-				$ECHO "Warning: --android_secure specified but android_secure partition present on sdcard"
-	                        # $ECHO "Warning: your phone may be in an inconsistent state on reboot."     
-                	fi
-		fi
-	
-
 		$ECHO "Restore done"
 		exit 0
 fi
@@ -1124,17 +1049,14 @@ if [ "$BACKUP" == 1 ]; then
 $ECHO "mounting system and data read-only, sdcard read-write"
 umount /system 2>/dev/null
 umount /data 2>/dev/null
-umount /datadata 2>/dev/null
 umount /sdcard 2>/dev/null
 mount -o ro /system || FAIL=1
 mount -o ro /data || FAIL=2
-mount -o ro /datadata || FAIL=3
-mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=4
+mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=3
 case $FAIL in
-	1) $ECHO "Error mounting system read-only"; umount /system /data /datadata /sdcard; exit 1;;
-	2) $ECHO "Error mounting data read-only"; umount /system /data /datadata /sdcard; exit 1;;
-	3) $ECHO "Error mounting datadata read-only"; umount /system /data /datadata /sdcard; exit 1;;
-	4) $ECHO "Error mounting sdcard read-write"; umount /system /data /datadata /sdcard; exit 1;;
+	1) $ECHO "Error mounting system read-only"; umount /system /data /sdcard; exit 1;;
+	2) $ECHO "Error mounting data read-only"; umount /system /data /sdcard; exit 1;;
+	3) $ECHO "Error mounting sdcard read-write"; umount /system /data /sdcard; exit 1;;
 esac
 
 if [ ! "$SUBNAME" == "" ]; then
@@ -1156,9 +1078,6 @@ if [ "$EXT" == 1 ]; then
 fi
 if [ "$ANDROID_SECURE" == 1 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"A"
-fi
-if [ "$ANDROID_SECURE_EMMC" == 1 ]; then
-    BACKUPLEGEND=$BACKUPLEGEND"I"
 fi
 if [ "$NOMISC" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"M"
@@ -1195,7 +1114,6 @@ if [ ! -d $DESTDIR ]; then
 		$ECHO "error: cannot create $DESTDIR"
 		umount /system 2>/dev/null
 		umount /data 2>/dev/null
-		umount /datadata 2>/dev/null
 		umount /sdcard 2>/dev/null
 		exit 1
 	fi
@@ -1205,7 +1123,6 @@ else
 		$ECHO "error: cannot write to $DESTDIR"
 		umount /system 2>/dev/null
 		umount /data 2>/dev/null
-		umount /datadata 2>/dev/null
 		umount /sdcard 2>/dev/null
 		exit 1
 	fi
@@ -1220,7 +1137,6 @@ if [ $FREEBLOCKS -le 500000 ]; then
 	$ECHO "Error: not enough free space available on sdcard (need 500mb), aborting."
 	umount /system 2>/dev/null
 	umount /data 2>/dev/null
-	umount /datadata 2>/dev/null
 	umount /sdcard 2>/dev/null
 	exit 1
 fi
@@ -1293,7 +1209,6 @@ for image in boot recovery misc; do
 			$ECHO "Fatal error while trying to dump $image, aborting."
 			umount /system
 			umount /data
-			umount /datadata
 			umount /sdcard
 			exit 1
 		fi
@@ -1302,7 +1217,7 @@ for image in boot recovery misc; do
 done
 
 # 6
-for image in system data cache datadata; do
+for image in system data cache; do
     case $image in
         system)
             if [ "$NOSYSTEM" == 1 ]; then
@@ -1315,13 +1230,7 @@ for image in system data cache datadata; do
                 $ECHO "Dump of the data partition suppressed."
                 continue
             fi
-	    ;;
-        datadata)
-            if [ "$NODATA" == 1 ]; then
-                $ECHO "Dump of the datadata partition suppressed."
-                continue
-            fi
-	    ;;
+            ;;
         cache)
             if [ "$NOCACHE" == 1 ]; then
                 $ECHO "Dump of the cache partition suppressed."
@@ -1370,39 +1279,6 @@ if [ "$EXT" == 1 ]; then
     fi
 fi
 
-# Backing up the /emmc/.android_secure, not really for the backup but to switch ROMS and apps at the same time.
-
-if [ "$ANDROID_SECURE_EMMC" == 1 ]; then
-    $ECHO "Storing the android_secure contents in the backup folder."
-
-    CHECK=`mount | grep /emmc`
-    if [ "$CHECK" == "" ]; then
-        mount /emmc 2>/dev/null
-    fi
-    
-    CHECK=`mount | grep /emmc`
-    if [ "$CHECK" == "" ]; then
-          $ECHO "Warning: --android_secure specified but unable to mount the emmc partition."
-          exit 1
-    else
-        
-        CWD=`pwd`
-        cd /emmc
-        # Depending on the whether we want it compressed we do either or.
-        if [ "$COMPRESS" == 0 ]; then 
-            tar -cvf $DESTDIR/android_emmc_secure.tar .android_secur*
-        else
-            if [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
-                tar -cvjf $DESTDIR/android_emmc_secure.tar.bz2 .android_secur*
-            else
-                tar -cvzf $DESTDIR/android_emmc_secure.tgz .android_secur*
-            fi
-        fi
-        cd $CWD
-        umount /emmc
-    fi
-fi
-
 # Backing up the /sdcard/.android_secure, not really for the backup but to switch ROMS and apps at the same time.
 
 if [ "$ANDROID_SECURE" == 1 ]; then
@@ -1421,9 +1297,6 @@ if [ "$ANDROID_SECURE" == 1 ]; then
         fi
         cd $CWD
 fi
-
-
-
 
 # 7.
 $ECHO -n "generating md5sum file..."
@@ -1456,7 +1329,6 @@ $ECHO "unmounting system, data and sdcard"
 umount /system
 umount /data
 umount /sdcard
-umount /datadata
 
 # 9.
 $ECHO "Backup successful."
@@ -1723,7 +1595,6 @@ if [ "$COMPRESS" == 1 -o "$DELETE" == 1 ]; then
     $ECHO "Unmounting /system and /data to be on the safe side, mounting /sdcard read-write."
     umount /system 2>/dev/null
     umount /data 2>/dev/null
-    umount /datadata 2>/dev/null
     umount /sdcard 2>/dev/null
 
     FAIL=0
@@ -1732,7 +1603,7 @@ if [ "$COMPRESS" == 1 -o "$DELETE" == 1 ]; then
     mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=1
 
     if [ "$FAIL" == 1 ]; then
-	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /datadata /sdcard; exit 1
+	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /sdcard; exit 1
     fi
 
     $ECHO "The current size of /sdcard FAT32 filesystem is `du /sdcard | tail -1 | cut -f 1 -d '/'`Kb"
@@ -1859,7 +1730,6 @@ if [ "$GETUPDATE" == 1 ]; then
     $ECHO "Unmounting /system and /data to be on the safe side, mounting /sdcard read-write."
     umount /system 2>/dev/null
     umount /data 2>/dev/null
-    umount /datadata 2>/dev/null
     umount /sdcard 2>/dev/null
 
     FAIL=0
@@ -1868,7 +1738,7 @@ if [ "$GETUPDATE" == 1 ]; then
     mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=1
 
     if [ "$FAIL" == 1 ]; then
-	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /datadata /sdcard; exit 1
+	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /sdcard; exit 1
     fi
 
     $ECHO "The current size of /sdcard FAT32 filesystem is `du /sdcard | tail -1 | cut -f 1 -d '/'`Kb"

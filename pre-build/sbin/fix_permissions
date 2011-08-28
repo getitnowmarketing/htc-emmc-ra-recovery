@@ -25,7 +25,6 @@
 # v2.02 - ignore com.htc.resources.apk if it exists and minor code cleanups,
 #         fix help text, implement simulated run (-s) [farmatito]
 # v2.03 - fixed chown group ownership output [Kastro]
-# 	  added /datadata mount point as per HTC Incredible getitnowmarketing 8/25/10
 
 VERSION="2.03"
 
@@ -73,7 +72,6 @@ SYSREMOUNT=0
 SYSMOUNT=0
 DATAMOUNT=0
 SYSSDMOUNT=0
-DATADATAMOUNT=0
 FP_STARTTIME=$( $DATE +"%m-%d-%Y %H:%M:%S" )
 FP_STARTEPOCH=$( $DATE +%s )
 
@@ -188,11 +186,6 @@ fp_start()
 			DATAMOUNT=1
 		fi
 	
-		if $TEST $( $GREP -c " /datadata " "/proc/mounts" ) -eq 0; then
-			$MOUNT /datadata > /dev/null 2>&1
-			DATADATAMOUNT=1
-		fi
-		
 		if $TEST -e /dev/block/mmcblk1p2 && $TEST $( $GREP -c " /sd-ext " "/proc/mounts" ) -eq 0; then
 				$MOUNT /sd-ext > /dev/null 2>&1
 			SYSSDMOUNT=1
@@ -463,9 +456,6 @@ fp_end()
 		$UMOUNT /data > /dev/null 2>&1
 	fi
 	
-	if $TEST $DATADATAMOUNT -eq 1; then
-		$UMOUNT /datadata > /dev/null 2>&1
-	fi
 	FP_ENDTIME=$( $DATE +"%m-%d-%Y %H:%M:%S" )
 	FP_ENDEPOCH=$( $DATE +%s )
 	

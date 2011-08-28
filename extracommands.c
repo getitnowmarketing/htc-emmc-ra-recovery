@@ -69,7 +69,7 @@ void key_logger_test()
 		int key = ui_wait_key();
                 //int visible = ui_text_visible();
 
-		if (key == KEY_VOLUMEDOWN) {
+		if (key == KEY_POWER) {
                    break;
                
 		} else  {   
@@ -82,10 +82,10 @@ void run_script(char *str1,char *str2,char *str3,char *str4,char *str5,char *str
 {
 	ui_print(str1);
         ui_clear_key_queue();
-	ui_print("\nPress Trackball to confirm,");
+	ui_print("\nPress Power to confirm,");
        	ui_print("\nany other key to abort.\n");
 	int confirm = ui_wait_key();
-		if (confirm == BTN_MOUSE) {
+		if (confirm == KEY_POWER) {
                 	ui_print(str2);
 		        pid_t pid = fork();
                 	if (pid == 0) {
@@ -110,6 +110,7 @@ void run_script(char *str1,char *str2,char *str3,char *str4,char *str5,char *str
        	        }
 		if (!ui_text_visible()) return;
 }
+
 
 
 // This was pulled from bionic: The default system command always looks
@@ -202,15 +203,15 @@ void usb_toggle_sdcard()
 			}
                 	ui_print("\n");
 			if (!WIFEXITED(status) || (WEXITSTATUS(status) != 0)) {
-                		ui_print("\nError : Run 'ums_toggl' via adb!\n\n");
+                		ui_print("\nError : Run 'ums_toggle' via adb!\n\n");
                 	} else {
                                 ui_clear_key_queue();
                 		ui_print("\nUSB-MS enabled!");
-				ui_print("\nPress Trackball to disable,");
+				ui_print("\nPress Power to disable,");
 				ui_print("\nand return to menu\n");
 		       		for (;;) {
         	                        	int key = ui_wait_key();
-						if (key == BTN_MOUSE) {
+						if (key == KEY_POWER) {
 							ui_print("\nDisabling USB-MS : ");
 						        pid_t pid = fork();
 				                	if (pid == 0) {
@@ -235,7 +236,7 @@ void usb_toggle_sdcard()
 				} 
                 	}
 		}	
-              
+/*              
 void usb_toggle_emmc()
 {
 		ui_print("\nEnabling USB-MS : ");
@@ -286,7 +287,7 @@ void usb_toggle_emmc()
 				} 
              }
    }	
-
+*/
 void wipe_battery_stats()
 {
     ensure_root_path_mounted("DATA:");
@@ -309,4 +310,3 @@ void check_my_battery_level()
 	__system("cat /sys/class/power_supply/battery/capacity");
 }
 */
-

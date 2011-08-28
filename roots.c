@@ -20,7 +20,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mtdutils/mounts.h"
@@ -37,8 +36,6 @@ typedef struct {
     const char *partition_name;
     const char *mount_point;
     const char *filesystem;
-    const char *filesystem_options;
-
 } RootInfo;
 
 /* Canonical pointers.
@@ -49,19 +46,17 @@ static const char g_raw[] = "@\0g_raw";
 static const char g_package_file[] = "@\0g_package_file";
 
 static RootInfo g_roots[] = {
-    { "BOOT:", g_mtd_device, NULL, "boot", NULL, g_raw, NULL },
-    { "CACHE:","/dev/block/mmcblk0p2", NULL, NULL, "/cache", "auto", NULL },
-    { "DATA:", "/dev/block/mmcblk0p1", NULL, NULL, "/data", "auto", NULL },
-    { "DATADATA:", g_mtd_device, NULL, "datadata", "/datadata", "yaffs2", NULL },
-    { "MISC:", g_mtd_device, NULL, "misc", NULL, g_raw, NULL },
-    { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL },
-    { "RECOVERY:", g_mtd_device, NULL, "recovery", "/", g_raw, NULL },
-    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL },
-    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "auto", NULL },
-    { "SYSTEM:", g_mtd_device, NULL, "system", "/system", "yaffs2", NULL },
-    { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL },
-    { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL },
-    { "EMMC:", "/dev/block/mmcblk0p3", NULL, NULL, "/emmc", "auto", NULL },
+    { "BOOT:", "/dev/block/mmcblk0p22", "boot", NULL, g_raw },
+    { "CACHE:", "/dev/block/mmcblk0p27", NULL, NULL, "/cache", "ext3" },
+    { "DATA:", "/dev/block/mmcblk0p26", NULL, NULL, "/data", "ext3" },
+    { "MISC:", "/dev/block/mmcblk0p17", NULL, "misc", NULL, "ext3" },
+    { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file },
+    { "RECOVERY:", "/dev/block/mmcblk0p21", "recovery", "/", g_raw },
+    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat" },
+    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "ext3" },
+    { "SYSTEM:", "/dev/block/mmcblk0p25", NULL, NULL, "/system", "ext3" },
+    { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw },
+    { "TMP:", NULL, NULL, NULL, "/tmp", NULL },
 };
 #define NUM_ROOTS (sizeof(g_roots) / sizeof(g_roots[0]))
 
@@ -216,19 +211,6 @@ is_root_path_mounted(const char *root_path)
     return internal_root_mounted(info) >= 0;
 }
 
-static int mount_internal(const char* device, const char* mount_point, const char* filesystem, const char* filesystem_options)
-{
-    if (strcmp(filesystem, "auto") != 0 && filesystem_options == NULL){
-        return mount(device, mount_point, filesystem, MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
-    } else {
-        char mount_cmd[PATH_MAX];
-        const char* options = filesystem_options == NULL ? "noatime,nodiratime,nodev" : filesystem_options;
-        sprintf(mount_cmd, "mount -t %s -o%s %s %s", filesystem, options, device, mount_point);
-        return __system(mount_cmd);
-    }
-
-}
-
 int
 ensure_root_path_mounted(const char *root_path)
 {
@@ -269,7 +251,8 @@ ensure_root_path_mounted(const char *root_path)
     }
 
     mkdir(info->mount_point, 0755);  // in case it doesn't already exist
-    if (mount_internal(info->device, info->mount_point, info->filesystem, info->filesystem_options)) {
+    if (mount(info->device, info->mount_point, info->filesystem,
+            MS_NOATIME | MS_NODEV | MS_NODIRATIME, "")) {
         if (info->device2 == NULL) {
             LOGE("Can't mount %s\n(%s)\n", info->device, strerror(errno));
             return -1;
