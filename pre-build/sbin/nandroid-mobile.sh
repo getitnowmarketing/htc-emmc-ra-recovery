@@ -75,6 +75,7 @@
 
 DEVICEID=foo
 RECOVERY=foo
+DEVICEBLK=foo
 
 SUBNAME=""
 NORECOVERY=0
@@ -922,7 +923,17 @@ if [ "$RESTORE" == 1 ]; then
                         continue
                     fi
                     $ECHO "Flashing $image..."
-		    $flash_image $image $image.img $OUTPUT
+		    if [ $image = "boot" ]; then
+			DEVICEBLK="/dev/block/mmcblk0p22"
+		    else
+	    		if [ $image = "recovery" ]; then
+			DEVICEBLK="/dev/block/mmcblk0p21"
+		  	fi
+	    	    fi				
+			dd if=/$image.img of=/$DEVICEBLK $OUTPUT
+			sync
+			# GNM not using flash_image as there may be bad blocks on boot & recovery
+		    #$flash_image $image $image.img $OUTPUT
                 done
 
 		for image in data system; do
@@ -1187,7 +1198,18 @@ for image in boot recovery misc; do
     esac
 
 	# 5a
-	DEVICEMD5=`$dump_image $image - | md5sum | awk '{ print $1 }'`
+	if [ $image = "boot" ]; then
+		DEVICEBLK="/dev/block/mmcblk0p22"
+	else
+	    if [ $image = "misc"]; then
+	        DEVICEBLK="/dev/block/mmcblk0p17"
+		else
+		  if [ $image = "recovery" ]; then
+			DEVICEBLK="/dev/block/mmcblk0p21"
+	    fi		
+	  	  fi			
+	fi	
+	DEVICEMD5=`md5sum $DEVICEBLK | awk '{ print $1 }'`
 	sleep 1s
 	MD5RESULT=1
 	# 5b
@@ -1196,7 +1218,7 @@ for image in boot recovery misc; do
 	while [ $MD5RESULT -eq 1 ]; do
 		let ATTEMPT=$ATTEMPT+1
 		# 5b1
-		$dump_image $image $DESTDIR/$image.img $OUTPUT
+		dd if=/$DEVICEBLK of=/$DESTDIR/$image.img bs=4096 $OUTPUT
 		sync
 		# 5b3
 		echo "${DEVICEMD5}  $DESTDIR/$image.img" | md5sum -c -s - $OUTPUT

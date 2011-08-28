@@ -165,7 +165,7 @@ static void
 get_args(int *argc, char ***argv) {
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
-    get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
+    //get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
 
     if (boot.command[0] != 0 && boot.command[0] != 255) {
         LOGI("Boot command: %.*s\n", sizeof(boot.command), boot.command);
@@ -220,7 +220,7 @@ get_args(int *argc, char ***argv) {
         strlcat(boot.recovery, (*argv)[i], sizeof(boot.recovery));
         strlcat(boot.recovery, "\n", sizeof(boot.recovery));
     }
-    set_bootloader_message(&boot);
+ //   set_bootloader_message(&boot);
 }
 
 
@@ -260,12 +260,12 @@ finish_recovery(const char *send_intent)
         }
         check_and_fclose(log, LOG_FILE);
     }
-
+/*
     // Reset the bootloader message to revert to a normal main system boot.
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
     set_bootloader_message(&boot);
-
+*/
     // Remove the command file, so recovery won't repeat indefinitely.
     char path[PATH_MAX] = "";
     if (ensure_root_path_mounted(COMMAND_FILE) != 0 ||
