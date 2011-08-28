@@ -1675,10 +1675,11 @@ show_menu_other()
 				   "\nMoving complete!\n\n",
 				   "\nMoving aborted!\n\n");
 			break;
-		
+		/*
 		case ITEM_OTHER_KEY_TEST:
 				key_logger_test();
 				break;
+		*/
 /*
 		case ITEM_OTHER_BATTERY_LEVEL:
 				check_my_battery_level();
