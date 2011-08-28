@@ -2155,10 +2155,10 @@ prompt_and_wait()
 #define ITEM_FLASH         3
 #define ITEM_WIPE          4
 #define ITEM_PARTITION     5
-#define ITEM_MOUNT	   6
-#define ITEM_OTHER         7
-#define ITEM_EXT4DATA      8
-#define ITEM_POWEROFF      9
+//#define ITEM_MOUNT	   6
+#define ITEM_OTHER         6
+#define ITEM_EXT4DATA      7
+#define ITEM_POWEROFF      8
 
 
     static char* items[] = { "- Reboot system now",
@@ -2167,9 +2167,9 @@ prompt_and_wait()
                              "- Flash zip menu",
                              "- Wipe",
                              "- Partition sdcard",
-                             "- Mounts",
+                             //"- Mounts",
 			     "- Other",
-                             "- Format /data /system Ext4 | Ext3",
+                             "- Format data,system,cache Ext4 | Ext3",
 			     "- Power off",
                              NULL };
 
