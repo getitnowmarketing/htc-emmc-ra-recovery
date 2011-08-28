@@ -2230,11 +2230,11 @@ prompt_and_wait()
                 case ITEM_PARTITION:
                     show_menu_partition();
                     break;
-
+		/*
 		case ITEM_MOUNT:
 			show_menu_mount();
 			break;
-
+		*/
 		case ITEM_OTHER:
                     show_menu_other();
         	    break; 
