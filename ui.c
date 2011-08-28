@@ -168,10 +168,10 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
-// HTC
-#define MENU_TEXT_COLOR 64, 96, 255, 255
-#define NORMAL_TEXT_COLOR 255, 255, 0, 255
-#define SELECTED_TEXT_COLOR 255, 255, 255, 255
+// CM
+#define MENU_TEXT_COLOR 61, 233, 255, 255
+#define NORMAL_TEXT_COLOR 193, 193, 193, 255
+#define SELECTED_TEXT_COLOR 0, 0, 0, 255
 
 /* 
 
