@@ -1962,10 +1962,10 @@ ui_start_menu(headers, items);
 	*/
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
-			ui_print("\nFormat /data /system to ext4?");
+			ui_print("\nFormat /data /system /cache to ext4?");
 			ui_print("\nPress Power to confirm,");
 		       	ui_print("\nany other key to abort.");
-			ui_print("\nThis wipes /data & /system!!\n");
+			ui_print("\nThis wipes /data , /cache & /system!!\n");
 			ui_print("\nYou will need to flash a rom,");
 			ui_print("\nwhen done,\n");
 			ui_print("\nor restore a nandroid then wipe,");
@@ -1974,6 +1974,7 @@ ui_start_menu(headers, items);
 				if (confirm_formext4 == KEY_POWER) {
 	                          // ui_print("\nFormatting data as ext4...\n");     
 				   erase_root("DATA:");
+				   erase_root("CACHE:");
 				   erase_root("SYSTEM:");
 				run_script("\nFormat ext4",
 					 "\nFormatting ext4 : ",
@@ -1992,10 +1993,10 @@ ui_start_menu(headers, items);
 
 		case ITEM_EXT4_FORMEXT3:
                         ui_clear_key_queue();
-			ui_print("\nReformat /data to ext3?");
+			ui_print("\nReformat /data, /cache & /system to ext3?");
 			ui_print("\nPress Power to confirm,");
 		       	ui_print("\nany other key to abort.");
-			ui_print("\nThis wipes /data & /system!!\n");
+			ui_print("\nThis wipes /data, /cache & /system!!\n");
 			ui_print("\nYou will need to flash a rom,");
 			ui_print("\nwhen done,\n");
 			ui_print("\nor restore a nandroid then wipe,");
@@ -2004,6 +2005,7 @@ ui_start_menu(headers, items);
 				if (confirm_formext3 == KEY_POWER) {
 	                          // ui_print("\nReformatting data as ext3...\n");     
 				   erase_root("DATA:");
+				   erase_root("CACHE:");
 				   erase_root("SYSTEM:");
 				run_script("\nFormat ext3",
 					 "\nFormatting ext3 : ",

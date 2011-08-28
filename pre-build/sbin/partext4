@@ -3,7 +3,7 @@
 # Recovery Script to reformat Droid Incredible data partiton as /ext4
 # 4/15/2011 by getitnowmarketing@gmail.com & savoxis@gmail.com
 # using grep block as dinc has a yaffs2 /data/data partition also
-# Modified 5/02/11 for thunderbolt/mecha GNM 
+# Modified 5/02/11 for thunderbolt/mecha/vivow GNM 
 # Version 1.3
 
 
@@ -12,9 +12,10 @@ DTUNE2FS="/sbin/tune2fs"
 DE2FSCK="/sbin/e2fsck"
 MECHDATAPART="/dev/block/mmcblk0p26"
 MECHSYSPART="/dev/block/mmcblk0p25"
+MECHCACPART="/dev/block/mmcblk0p27"
 CHECKMOUNTEDD=`mount | grep "$MECHDATAPART" | awk '{print $2}'`
 CHECKMOUNTEDS=`mount | grep "$MECHSYSPART" | awk '{print $2}'` 
-
+CHECKMOUNTEDC=`mount | grep "$MECHCACPART" | awk '{print $2}'` 
 
 
 case $1 in
@@ -33,12 +34,21 @@ case $1 in
 		sleep 2
 	 fi	
 		
+	if [ "$CHECKMOUNTEDC" == "on" ]; then
+		echo "/cache already mounted"
+	 else
+		mount /cache 2>/dev/null
+		sleep 2
+	 fi
 		  #Grab 5th collumn from the mount output greping only line with data
 		FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
 		echo "Filesystem for Data is: $FSTYPE"
 		
 		FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'` 
 		echo "Filesystem for System is: $FSTYPES"
+
+	 	FSTYPES=`mount | grep "$MECHCACPART" | awk '{print $5}'` 
+		echo "Filesystem for Cache is: $FSTYPES"
 	 ;;
         formatext4)
 	  if [ "$CHECKMOUNTEDD" == "on" ]; then
@@ -49,6 +59,8 @@ case $1 in
 		sleep 2
 	  fi
           FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
+	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
+  	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'`
 
 	  if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "/system already mounted"
@@ -56,8 +68,14 @@ case $1 in
 		mount /system 2>/dev/null
 		sleep 2
 	  fi
-	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
-  
+	  
+	  if [ "$CHECKMOUNTEDC" == "on" ]; then
+		echo "/cache already mounted"
+	  else
+		mount /cache 2>/dev/null
+		sleep 2
+	  fi	  
+
 		#Check if FS is ext4 already
 	  if [ "$FSTYPE" == "ext4" ]; then
 		echo "your /data filesystem is already ext4"
@@ -68,7 +86,12 @@ case $1 in
 		echo "your /system filesystem is already ext4"
 		exit 1
 	  fi
-
+	
+	  if [ "$FSTYPEC" == "ext4" ]; then
+		echo "your /cache filesystem is already ext4"
+		exit 1
+	  fi
+	    	
 	    #Check if FS is ext3
 	  if [ "$FSTYPE" == "ext3" ]; then
 		echo "/data is ext3 ..proceed"
@@ -81,16 +104,27 @@ case $1 in
 	  if [ "$FSTYPES" == "ext3" ]; then
 		echo "/system is ext3 ..proceed"
 	  else
-		echo "/system filesystem is $FSTYPE"
+		echo "/system filesystem is $FSTYPES"
 		   exit 1			 
 	  fi
-		 
+	  
+	   #Check if FS is ext3
+	  if [ "$FSTYPEC" == "ext3" ]; then
+		echo "/cache is ext3 ..proceed"
+	  else
+		echo "/cache filesystem is $FSTYPEC"
+		   exit 1			 
+	  fi	 
 		echo "unmounting /data"
 		umount /data 2>/dev/null
 		sleep 2
 
 		echo "unmounting /system"
 		umount /system 2>/dev/null
+		sleep 2
+
+		echo "unmounting /cache"
+		umount /cache 2>/dev/null
 		sleep 2
 	 
 		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHDATAPART"
@@ -101,7 +135,12 @@ case $1 in
 		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHSYSPART"
 		"$DE2FSCK" -fpDC0 "$MECHSYSPART"
 		sleep 2
-		echo "/system done"	
+		echo "/system done"
+
+		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHCACPART"
+		"$DE2FSCK" -fpDC0 "$MECHCACPART"
+		sleep 2
+		echo "/cache done"	
 	 ;;
 
 
@@ -113,7 +152,9 @@ case $1 in
 		mount /data 2>/dev/null
 		sleep 2
 	  fi
-          FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
+          FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'`
+	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
+	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'` 
 
 	  if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "/system already mounted"
@@ -121,8 +162,14 @@ case $1 in
 		mount /system 2>/dev/null
 		sleep 2
 	  fi
-	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
 
+	  if [ "$CHECKMOUNTEDC" == "on" ]; then
+		echo "/cache already mounted"
+	  else
+		mount /cache 2>/dev/null
+		sleep 2
+	  fi
+	
 	  if [ "$FSTYPE" == "ext4" ]; then
 		echo "/data is ext4 ..proceed"
 		
@@ -138,7 +185,14 @@ case $1 in
 		echo "/system is not currently ext4"
 		exit 1
 	  fi
+	
+          if [ "$FSTYPEC" == "ext4" ]; then
+		echo "/cache is ext4 ..proceed"
 		
+	  else 
+		echo "/cache is not currently ext4"
+		exit 1
+	  fi	
 		echo "unmounting /data"
 		umount /data 2>/dev/null
 		sleep 2
@@ -153,6 +207,14 @@ case $1 in
 		echo "preparing to repartition /system as ext3"
 		"$DMKE2FS" -t ext3 "$MECHSYSPART"
 		"$DE2FSCK" -fp "$MECHSYSPART"
+		sleep 2
+
+		echo "unmounting /cache"
+		umount /cache 2>/dev/null
+		sleep 2
+		echo "preparing to repartition /cache as ext3"
+		"$DMKE2FS" -t ext3 "$MECHCACPART"
+		"$DE2FSCK" -fp "$MECHCACPART"
 		sleep 2
 	 ;;
 	--)
@@ -169,7 +231,13 @@ esac
 		echo "unmounting /system"
 		umount /system 2>/dev/null
 		sleep 2
-		exit 0
-	else
-		exit 0
-        fi
+	fi
+	CHECKMOUNTEDC=`mount | grep "$MECHCACPART" | awk '{print $2}'` 
+	if [ "$CHECKMOUNTEDS" == "on" ]; then
+		echo "unmounting /cache"
+		umount /cache 2>/dev/null
+		sleep 2
+	fi		
+	
+	exit 0
+        
