@@ -1,0 +1,105 @@
+#!/sbin/sh
+
+# Recovery Script to reformat Droid Incredible data partiton as /ext4
+# 4/15/2011 by getitnowmarketing@gmail.com & savoxis@gmail.com
+# using grep block as dinc has a yaffs2 /data/data partition also
+# Version 1.3
+
+
+DMKE2FS="/sbin/mke2fs"
+DTUNE2FS="/sbin/tune2fs"
+DE2FSCK="/sbin/e2fsck"
+DINCDATAPART="/dev/block/mmcblk0p1"
+CHECKMOUNTED=`mount | grep "$DINCDATAPART" | awk '{print $2}'` 
+
+
+
+case $1 in
+	check)
+	 if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "/data already mounted"
+	 else
+		mount /data 2>/dev/null
+		sleep 2
+	 fi
+ 		  #Grab 5th collumn from the mount output greping only line with data
+		FSTYPE=`mount | grep "$DINCDATAPART" | awk '{print $5}'` 
+		echo "Filesystem for Data is: $FSTYPE"
+	 ;;
+        formatext4)
+	  if [ "$CHECKMOUNTED" == "on" ]; then
+	  	echo "/data already mounted"
+	  else
+		echo "mounting /data to check fs type"
+		mount /data 2>/dev/null
+		sleep 2
+	  fi
+          FSTYPE=`mount | grep "$DINCDATAPART" | awk '{print $5}'` 
+
+	    #Check if FS is ext4 already
+	  if [ "$FSTYPE" == "ext4" ]; then
+		echo "your filesystem is already ext4"
+		exit 1
+	  fi
+
+	    #Check if FS is ext3
+	  if [ "$FSTYPE" == "ext3" ]; then
+		echo "/data is ext3 ..proceed"
+	  else
+		echo "filesystem is $FSTYPE"
+		   exit 1			 
+	  fi
+
+		  #Get data partition dynamically
+		#DINCDATAPART=`mount | grep /data | awk '{print $1}'` 
+
+		echo "unmounting /data"
+		umount /data 2>/dev/null
+		sleep 2
+	 
+		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$DINCDATAPART"
+		"$DE2FSCK" -fpDC0 "$DINCDATAPART"
+		sleep 2
+		echo "done"	
+	 ;;
+
+
+	reformatext3)
+	  if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "/data already mounted"
+	  else
+		echo "mounting /data to check fs type"
+		mount /data 2>/dev/null
+		sleep 2
+	  fi
+	  
+          FSTYPE=`mount | grep "$DINCDATAPART" | awk '{print $5}'` 
+
+	  if [ "$FSTYPE" == "ext4" ]; then
+		  #Get data partition dynamically
+		#DINCDATAPART=`mount | grep /data | awk '{print $1}'` 
+
+		echo "unmounting /data"
+		umount /data 2>/dev/null
+		sleep 2
+		echo "preparing to repartition /data as ext3"
+		"$DMKE2FS" -t ext3 "$DINCDATAPART"
+		"$DE2FSCK" -fp "$DINCDATAPART"
+		sleep 2
+	  else 
+		echo "/data is not currently ext4"
+		exit 1
+	  fi
+	 ;;
+	--)
+	 ;;
+esac
+	CHECKMOUNTED=`mount | grep "$DINCDATAPART" | awk '{print $2}'` 
+	if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "unmounting /data"
+		umount /data 2>/dev/null
+		sleep 2
+		exit 0
+	else
+		exit 0
+        fi

@@ -1,0 +1,171 @@
+#!/sbin/sh
+
+# Recovery Script to reformat Droid Incredible data partiton as /ext4
+# 4/15/2011 by getitnowmarketing@gmail.com & savoxis@gmail.com
+# using grep block as dinc has a yaffs2 /data/data partition also
+# 
+# 5/23/2011 Modified to format DINC emmc as different fs gnm
+
+
+DMKE2FS="/sbin/mke2fs"
+DTUNE2FS="/sbin/tune2fs"
+DE2FSCK="/sbin/e2fsck"
+DBB="/sbin/busybox"
+DINCEMMCPART="/dev/block/mmcblk0p3"
+CHECKMOUNTED=`mount | grep "$DINCEMMCPART" | awk '{print $2}'` 
+
+
+
+case $1 in
+	check)
+	 if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "/emmc already mounted"
+	 else
+		mount /emmc 2>/dev/null
+		sleep 2
+	 fi
+ 		  #Grab 5th collumn from the mount output greping only line with data
+		FSTYPE=`mount | grep "$DINCEMMCPART" | awk '{print $5}'` 
+		echo "Filesystem for EMMC is: $FSTYPE"
+	 ;;
+        upgradeext4)
+	  if [ "$CHECKMOUNTED" == "on" ]; then
+	  	echo "/emmc already mounted"
+	  else
+		echo "mounting /emmc to check fs type"
+		mount /emmc 2>/dev/null
+		sleep 2
+	  fi
+          FSTYPE=`mount | grep "$DINCEMMCPART" | awk '{print $5}'` 
+
+	  
+          #Check if FS is ext4 already
+	  if [ "$FSTYPE" == "ext4" ]; then
+		echo "your filesystem is already ext4"
+		exit 1
+	  fi
+
+	    #Check if FS is ext3
+	  if [ "$FSTYPE" == "ext3" ]; then
+		echo "/emmc is ext3 ..proceed"
+	  else
+		echo "filesystem is $FSTYPE"
+		   exit 1			 
+	  fi
+
+		  #Get emmc partition dynamically
+		#DINCEMMCPART=`mount | grep /emmc | awk '{print $1}'` 
+
+		echo "unmounting /emmc"
+		umount /emmc 2>/dev/null
+		sleep 2
+	 
+		echo "upgrading ext3 to ext4"
+		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$DINCEMMCPART"
+		"$DE2FSCK" -fpDC0 "$DINCEMMCPART"
+		sleep 2
+		echo "done"	
+	 ;;
+
+
+	formatext3)
+	  if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "/emmc already mounted"
+	  else
+		echo "mounting /emmc to check fs type"
+		mount /emmc 2>/dev/null
+		sleep 2
+	  fi
+	  
+          FSTYPE=`mount | grep "$DINCEMMCPART" | awk '{print $5}'` 
+
+	  if [ "$FSTYPE" == "vfat" ]; then
+		 echo "/emmc is vfat ..proceed"
+	  else
+	  if [ "$FSTYPE" == "ext4" ]; then
+		 echo "/emmc is ext4 ..proceed"
+	  else
+	   if [ "$FSTYPE" == "ext2" ]; then
+		 echo "/emmc is ext2 ..proceed"
+	   else 
+		echo "/emmc is not currently vfat, ext2, or ext4"
+		exit 1
+	    fi
+	   fi
+	  fi
+		echo "unmounting /emmc"
+		umount /emmc 2>/dev/null
+		sleep 2
+
+		echo "preparing to repartition /emmc as ext3"
+		"$DMKE2FS" -t ext3 "$DINCEMMCPART"
+		"$DE2FSCK" -fp "$DINCEMMCPART"
+		sleep 2
+		echo "done"
+	 ;;
+	
+	formatfat32)
+	  if [ "$CHECKMOUNTED" == "on" ]; then
+	  	echo "/emmc already mounted"
+	  else
+		echo "mounting /emmc to check fs type"
+		mount /emmc 2>/dev/null
+		sleep 2
+	  fi
+          FSTYPE=`mount | grep "$DINCEMMCPART" | awk '{print $5}'` 
+
+	  
+          #Check if FS is vfat already
+	  if [ "$FSTYPE" == "vfat" ]; then
+		echo "your filesystem is already vfat"
+		exit 1
+	  fi
+
+	    if [ "$FSTYPE" == "ext3" ]; then
+		 echo "/emmc is ext3 ..proceed"
+	  else
+	  if [ "$FSTYPE" == "ext4" ]; then
+		 echo "/emmc is ext4 ..proceed"
+	  else
+	   if [ "$FSTYPE" == "ext2" ]; then
+		 echo "/emmc is ext2 ..proceed"
+	   else 
+		echo "filesystem is $FSTYPE"
+		exit 1
+	    fi
+	   fi
+	  fi
+         
+		  #Get emmc partition dynamically
+		#DINCEMMCPART=`mount | grep /emmc | awk '{print $1}'` 
+
+		echo "unmounting /emmc"
+		umount /emmc 2>/dev/null
+		sleep 2
+
+	 	echo "formatting vfat"
+		"$DBB" mkfs.vfat "$DINCEMMCPART"
+		sleep 2
+		echo "done"	
+	 ;;
+
+	--)
+	 ;;
+
+	help)
+		echo "commands available are:"
+		echo "upgradeext4"
+		echo "formatext3"
+		echo "formatfat32"
+		echo "check (to check current fs type)"
+	;;
+esac
+	CHECKMOUNTED=`mount | grep "$DINCEMMCPART" | awk '{print $2}'` 
+	if [ "$CHECKMOUNTED" == "on" ]; then
+		echo "unmounting /emmc"
+		umount /emmc 2>/dev/null
+		sleep 2
+		exit 0
+	else
+		exit 0
+        fi
