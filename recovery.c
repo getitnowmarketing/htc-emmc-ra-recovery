@@ -971,9 +971,7 @@ void show_choose_zip_menu()
     }
 
     static char* headers[] = {  "Choose a zip to apply",
-			        "or press BACK to return",
-                                "",
-                                NULL 
+		                  NULL 
     };
     
     char* file = choose_file_menu("/sdcard/", ".zip", headers);
@@ -1613,15 +1611,15 @@ show_menu_other()
 #define ITEM_OTHER_EXIT   0
 #define ITEM_OTHER_FIXUID 1
 #define ITEM_OTHER_RE2SD  2
-//#define ITEM_OTHER_KEY_TEST 3
-//#define ITEM_OTHER_BATTERY_LEVEL 3
-#define ITEM_OTHER_DANGER_WIPE_SYSTEM 3 
+#define ITEM_OTHER_KEY_TEST 3
+#define ITEM_OTHER_BATTERY_LEVEL 4
+#define ITEM_OTHER_DANGER_WIPE_SYSTEM 5 
 
     static char* items[] = { "- Return",
 			     "- Fix apk uid mismatches",
 			     "- Move recovery.log to SD",
-                             //"- Debugging Test Key Codes",
-			     //"- Check Battery Level",
+                             "- Debugging Test Key Codes",
+			     "- Check Battery Level",
 			     "- DANGEROUS!! Wipe /system",	
 				NULL };
 
@@ -1675,16 +1673,16 @@ show_menu_other()
 				   "\nMoving complete!\n\n",
 				   "\nMoving aborted!\n\n");
 			break;
-		/*
+		
 		case ITEM_OTHER_KEY_TEST:
 				key_logger_test();
 				break;
-		*/
-/*
+		
+
 		case ITEM_OTHER_BATTERY_LEVEL:
 				check_my_battery_level();
 				break;
-*/
+
 
 		/*Commented out code too dangerous*/
            	case ITEM_OTHER_DANGER_WIPE_SYSTEM:
@@ -1933,8 +1931,8 @@ show_menu_ext4_data()
 
     static char* items[] = { "- Return",
 			     //"- Check /data fs format",
-			     "- Format /data to ext4",
-			     "- Format /data to ext3",
+			     "- Format to ext4",
+			     "- Format to ext3",
                               NULL };
 
 ui_start_menu(headers, items);

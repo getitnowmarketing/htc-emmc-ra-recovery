@@ -303,10 +303,16 @@ void wipe_rotate_settings()
     ensure_root_path_unmounted("DATA:");
 }     
 
-/*
+
 void check_my_battery_level()
 {
 	
-	__system("cat /sys/class/power_supply/battery/capacity");
+    char cap_s[3];
+    
+    FILE * cap = fopen("/sys/class/power_supply/battery/capacity","r");
+    fgets(cap_s, 3, cap);
+    fclose(cap);
+
+    ui_print("\nBattery Level: %s%%\n", cap_s);
 }
-*/
+

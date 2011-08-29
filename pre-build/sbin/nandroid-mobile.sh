@@ -102,6 +102,10 @@ ITSANUPDATE=0
 ITSANIMAGE=0
 WEBGETSOURCE=""
 WEBGETTARGET="/sdcard"
+DB="/dev/block/"
+RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
+BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
+MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
 
 DEFAULTUPDATEPATH="/sdcard/download"
 
@@ -1199,13 +1203,16 @@ for image in boot recovery misc; do
 
 	# 5a
 	if [ $image = "boot" ]; then
-		DEVICEBLK="/dev/block/mmcblk0p22"
+	    echo "boot found on $DB$BOOTBLK"
+	    DEVICEBLK=$DB$BOOTBLK
 	else
 	    if [ $image = "misc"]; then
-	        DEVICEBLK="/dev/block/mmcblk0p17"
+	        echo "misc found on $DB$MISCBLK"
+		DEVICEBLK=$DB$MISCBLK
 		else
 		  if [ $image = "recovery" ]; then
-			DEVICEBLK="/dev/block/mmcblk0p21"
+			echo "recovery found on $DB$RECBLK"
+			DEVICEBLK=$DB$RECBLK
 	    fi		
 	  	  fi			
 	fi	
