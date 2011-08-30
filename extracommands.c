@@ -69,7 +69,7 @@ void key_logger_test()
 		int key = ui_wait_key();
                 //int visible = ui_text_visible();
 
-		if (key == KEY_POWER) {
+		if (key == KEY_BACK) {
                    break;
                
 		} else  {   

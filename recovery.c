@@ -309,7 +309,8 @@ static void
 choose_nandroid_file(const char *nandroid_folder)
 {
     static char* headers[] = { "Choose nandroid-backup,",
-			       "",
+			       "or press BACK to return",
+                               "",
                                NULL };
 
     char path[PATH_MAX] = "";
@@ -405,7 +406,9 @@ choose_nandroid_file(const char *nandroid_folder)
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -486,7 +489,8 @@ static void
 choose_nandroid_folder()
 {
     static char* headers[] = { "Choose Device-ID,",
-			       "",
+			       "or press BACK to return",
+                               "",
                                NULL };
 
     char path[PATH_MAX] = "";
@@ -581,7 +585,9 @@ choose_nandroid_folder()
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
-         if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -889,7 +895,9 @@ show_menu_nandroid()
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
-         if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -971,7 +979,9 @@ void show_choose_zip_menu()
     }
 
     static char* headers[] = {  "Choose a zip to apply",
-		                  NULL 
+			        "or press BACK to return",
+                                "",
+                                NULL 
     };
     
     char* file = choose_file_menu("/sdcard/", ".zip", headers);
@@ -1071,6 +1081,7 @@ show_menu_wipe()
 {
 
     static char* headers[] = { "Choose wipe item,",
+			       "or press BACK to return",
 			       "",
 			       NULL };
 
@@ -1110,7 +1121,9 @@ show_menu_wipe()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1322,6 +1335,7 @@ show_menu_br()
 {
 
     static char* headers[] = { "Choose backup/restore item;",
+			       "or press BACK to return",
 			       "",
 			       NULL };
 
@@ -1353,7 +1367,9 @@ show_menu_br()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1375,9 +1391,10 @@ show_menu_br()
                 
 		case ITEM_NANDROID_BCK:
 		    ui_print("\n\n*** WARNING ***");
-		    ui_print("\nsd-ext and .android_secure backups require");
-		    ui_print("\nlots of SDcard space and may take a few");
+		    ui_print("\nNandroid backups require minimum");
+		    ui_print("\n500mb SDcard space and may take a few");
 		    ui_print("\nminutes to back up!\n\n");
+		    ui_print("\nUse Other/recoverylog2sd for errors.\n\n"); 
 		    show_menu_nandroid();
                     break;
 
@@ -1430,6 +1447,7 @@ show_menu_partition()
 {
 
     static char* headers[] = { "Choose partition item,",
+			       "or press BACK to return",
 			       "",
 			       NULL };
 
@@ -1458,7 +1476,9 @@ show_menu_partition()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1604,6 +1624,7 @@ show_menu_other()
 {
 
     static char* headers[] = { "Choose item,",
+			       "or press BACK to return",
 			       "",
 			       NULL };
 
@@ -1634,7 +1655,9 @@ show_menu_other()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1725,6 +1748,7 @@ show_menu_flash()
 {
 
     static char* headers[] = { "Choose item,",
+			       "or press BACK to return",
 			       "",
 			       NULL };
 
@@ -1751,7 +1775,9 @@ show_menu_flash()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1815,7 +1841,6 @@ create_mount_items(char *items[],int item)
 				"DATA:",
 				"SDEXT:",
 				"SDCARD:",
-				NULL,
              	NULL};
 	
 	static char* items_m[] = { 
@@ -1824,7 +1849,6 @@ create_mount_items(char *items[],int item)
 				"- Mount /data",
 				"- Mount /sd-ext",
 				"- Mount /sdcard",
-				"- Return",
 		NULL};
 	
 	static char* items_u[] = { 
@@ -1833,7 +1857,6 @@ create_mount_items(char *items[],int item)
 				"- Unmount /data",
 				"- Unmount /sd-ext",
 				"- Unmount /sdcard",
-				"- Return",
                	NULL};
 	
 	while (roots[i])
@@ -1861,10 +1884,11 @@ static void
 show_menu_mount()
 {
    static char* headers[] = { "Choose mount item,",
-			      "",
+			       "or press Back to return",
+			       "",
 			       NULL };
 				   
-	char* items[]={NULL,NULL,NULL,NULL,NULL,NULL,NULL};
+	char* items[]={NULL,NULL,NULL,NULL,NULL,NULL};
 	
 	create_mount_items(items,-1);
 	ui_start_menu(headers, items);
@@ -1877,7 +1901,9 @@ show_menu_mount()
         int key = ui_wait_key();
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -1887,12 +1913,7 @@ show_menu_mount()
             chosen_item = selected;
 	}
         if (chosen_item >= 0) {
-            
-		if (chosen_item == 6) {
-			return;
-		}
-	
-	    // turn off the menu, letting ui_print() to scroll output
+            // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
 
@@ -1920,7 +1941,8 @@ show_menu_ext4_data()
 {
 
     static char* headers[] = { "Choose  item,",
-			       "",
+			       "or press Back to return",
+				   "",
 			       NULL };
 
 // these constants correspond to elements of the items[] list.
@@ -1946,7 +1968,9 @@ ui_start_menu(headers, items);
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -2064,6 +2088,7 @@ show_menu_usb()
 {
 
     static char* headers[] = { "Choose item,",
+			       "or press BACK to return",
 			       "",
 			       	NULL };
 
@@ -2089,7 +2114,9 @@ show_menu_usb()
         int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
         int visible = ui_text_visible();
 
-        if ((key == KEY_VOLUMEDOWN) && visible) {
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
             ++selected;
             selected = ui_menu_select(selected);
         } else if ((key == KEY_VOLUMEUP) && visible) {
@@ -2154,10 +2181,10 @@ prompt_and_wait()
 #define ITEM_FLASH         3
 #define ITEM_WIPE          4
 #define ITEM_PARTITION     5
-//#define ITEM_MOUNT	   6
-#define ITEM_OTHER         6
-#define ITEM_EXT4DATA      7
-#define ITEM_POWEROFF      8
+#define ITEM_MOUNT	       6
+#define ITEM_OTHER         7
+#define ITEM_EXT4DATA      8
+#define ITEM_POWEROFF      9
 
 
     static char* items[] = { "- Reboot system now",
@@ -2166,7 +2193,7 @@ prompt_and_wait()
                              "- Flash zip menu",
                              "- Wipe",
                              "- Partition sdcard",
-                             //"- Mounts",
+                             "- Mounts",
 			     "- Other",
                              "- Format data,system,cache Ext4 | Ext3",
 			     "- Power off",
@@ -2229,11 +2256,11 @@ prompt_and_wait()
                 case ITEM_PARTITION:
                     show_menu_partition();
                     break;
-		/*
+
 		case ITEM_MOUNT:
 			show_menu_mount();
 			break;
-		*/
+
 		case ITEM_OTHER:
                     show_menu_other();
         	    break; 
