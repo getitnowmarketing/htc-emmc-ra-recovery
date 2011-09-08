@@ -48,7 +48,7 @@ To handle formatting non yaffs2 partitions like the ext3 /data & /cache on Incre
 
 #include <sys/limits.h>
 
-//make this optional
+//disable this, its optional
 int signature_check_enabled = 0;
 
 void toggle_signature_check()
