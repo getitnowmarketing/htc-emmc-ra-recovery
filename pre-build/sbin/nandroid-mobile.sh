@@ -939,7 +939,7 @@ if [ "$RESTORE" == 1 ]; then
 			#echo "Zeroing $DEVICEBLK"
 			#sync
 			echo "Flashing $image on $DEVICEBLK"
-			dd if=$image.img of=/$DEVICEBLK $OUTPUT
+			dd if=$image.img of=$DEVICEBLK $OUTPUT
 			sync
 			# GNM not using flash_image as there may be bad blocks on boot & recovery
 		    #$flash_image $image $image.img $OUTPUT
