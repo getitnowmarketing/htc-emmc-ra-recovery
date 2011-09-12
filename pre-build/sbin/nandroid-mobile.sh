@@ -928,13 +928,18 @@ if [ "$RESTORE" == 1 ]; then
                     fi
                     $ECHO "Flashing $image..."
 		    if [ $image = "boot" ]; then
-			DEVICEBLK="/dev/block/mmcblk0p22"
+			DEVICEBLK=$DB$BOOTBLK
 		    else
 	    		if [ $image = "recovery" ]; then
-			DEVICEBLK="/dev/block/mmcblk0p21"
+			DEVICEBLK=$DB$RECBLK
 		  	fi
 	    	    fi				
-			dd if=/$image.img of=/$DEVICEBLK $OUTPUT
+			# zeroing the boot & recovery prior to flashing
+			#dd if=/dev/zero of=/$DEVICEBLK
+			#echo "Zeroing $DEVICEBLK"
+			#sync
+			echo "Flashing $image on $DEVICEBLK"
+			dd if=$image.img of=/$DEVICEBLK $OUTPUT
 			sync
 			# GNM not using flash_image as there may be bad blocks on boot & recovery
 		    #$flash_image $image $image.img $OUTPUT
