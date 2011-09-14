@@ -155,7 +155,7 @@ echo2log()
 
 batteryAtLeast()
 {
-                REQUIREDLEVEL=$1
+                REQUIREDLEVEL=10
 		ENERGY=`cat /sys/class/power_supply/battery/capacity`
 		if [ "`cat /sys/class/power_supply/battery/status`" == "Charging" ]; then
 			ENERGY=100
