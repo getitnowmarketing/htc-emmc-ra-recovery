@@ -646,8 +646,8 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
     for (pass = 0; pass < 2; pass++) {
         while ((de=readdir(dir)) != NULL) {
             // skip hidden files
-            //   if (de->d_name[0] == '.' && de->d_name[1] != '.')
-               // continue;
+               if (de->d_name[0] == '.' && de->d_name[1] != '.')
+                continue;
 
             // NULL means that we are gathering directories, so skip this
             if (fileExtensionOrDirectory != NULL)
