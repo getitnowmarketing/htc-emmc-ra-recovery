@@ -111,6 +111,7 @@ BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
 MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
 YAFFSEXTASECURE=0
 CWMRESTORE=0
+CWMCOMPAT=0
 
 DEFAULTUPDATEPATH="/sdcard/download"
 
@@ -196,7 +197,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -338,7 +339,9 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             $ECHO ""
             $ECHO "--listupdate               Will search the entire SDCARD for updates and will dump"
             $ECHO "                           the list to stdout for use by the UI. Should be run with --silent"
-            exit 0
+            $ECHO "--cwmcompat                Compatibility Mode for CWM Backup Folder"
+            $ECHO ""                           
+	    exit 0
             ;;
         --norecovery)
             NORECOVERY=1
@@ -563,7 +566,11 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             shift
             LISTUPDATE=1
             ;;
-        --)
+        --cwmcompat)
+            CWMCOMPAT=1
+	    shift
+            ;;
+	--)
             shift
             break
             ;;
@@ -573,6 +580,10 @@ done
 $ECHO ""
 $ECHO "nandroid-mobile v2.2.3"
 $ECHO ""
+
+if [ "$CWMCOMPAT" == "1" ]; then
+BACKUPPATH="/sdcard/clockworkmod/backup"
+fi
 
 let OPS=$BACKUP
 let OPS=$OPS+$RESTORE
@@ -1234,9 +1245,9 @@ fi
 # 3.
 $ECHO "checking free space on sdcard"
 FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
-# we need about 500MB for the dump
-if [ $FREEBLOCKS -le 500000 ]; then
-	$ECHO "Error: not enough free space available on sdcard (need 500mb), aborting."
+# we need about 700MB for the dump
+if [ $FREEBLOCKS -le 700000 ]; then
+	$ECHO "Error: not enough free space available on sdcard (need 700mb), aborting."
 	umount /system 2>/dev/null
 	umount /data 2>/dev/null
 	umount /sdcard 2>/dev/null

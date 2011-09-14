@@ -60,7 +60,8 @@ static const char *NANDROID_PATH = "SDCARD:/nandroid/";
 #define SDCARD_PATH_LENGTH 7
 #define NANDROID_PATH_LENGTH 17
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
-
+static const char *CLOCKWORK_PATH = "SDCARD:/clockworkmod/backup/";
+#define CLOCKWORK_PATH_LENGTH 28
 void free_string_array(char** array);
 char* choose_file_menu(const char* directory, const char* fileExtensionOrDirectory, const char* headers[]);
 char** gather_files(const char* directory, const char* fileExtensionOrDirectory, int* numFiles);
@@ -446,6 +447,186 @@ choose_nandroid_file(const char *nandroid_folder)
                             pid_t pid = fork();
                             if (pid == 0) {
                                 char *args[] = {"/sbin/sh", "-c", nandroid_command , "1>&2", NULL};
+                                execv("/sbin/sh", args);
+                                fprintf(stderr, "\nCan't run nandroid-mobile.sh\n(%s)\n", strerror(errno));
+        	                _exit(-1);
+                            }
+
+                            int status3;
+
+                            while (waitpid(pid, &status3, WNOHANG) == 0) {
+                                ui_print(".");
+                                sleep(1);
+                            } 
+                            ui_print("\n");
+
+                           if (!WIFEXITED(status3) || (WEXITSTATUS(status3) != 0)) {
+                               ui_print("\nOops... something went wrong!\nPlease check the recovery log!\n\n");
+                          } else {
+                                ui_print("\nRestore complete!\n\n");
+                          }
+
+                        
+            } else {
+                ui_print("\nRestore aborted.\n");
+            }
+            if (!ui_text_visible()) break;
+            break;
+        }
+    }
+
+out:
+
+    for (i = 0; i < total; i++) {
+        free(files[i]);
+	free(list[i]);
+    }
+    free(files);
+    free(list);
+}
+
+static void
+choose_clockwork_file()
+{
+    static char* headers[] = { "Choose clockworkmod nandroid-backup,",
+			       "or press BACK to return",
+                               "",
+                               NULL };
+
+    char path[PATH_MAX] = "";
+    DIR *dir;
+    struct dirent *de;
+    char **files;
+    char **list;
+    int total = 1;
+    int i;
+
+    if (ensure_root_path_mounted(CLOCKWORK_PATH) != 0) {
+        LOGE("Can't mount %s\n", CLOCKWORK_PATH);
+        return;
+    }
+
+    if (translate_root_path(CLOCKWORK_PATH, path, sizeof(path)) == NULL) {
+        LOGE("Bad path %s", path);
+        return;
+    }
+
+    dir = opendir(path);
+    if (dir == NULL) {
+        LOGE("Couldn't open directory %s", path);
+        return;
+    }
+
+    /* count how many files we're looking at */
+    while ((de = readdir(dir)) != NULL) {
+        char *extension = strrchr(de->d_name, '.');
+	if (de->d_name[0] == '.') {
+            continue;
+        } else {
+            total++;
+        }
+    }
+
+    if (total==1) {
+        LOGE("No clockworkmod nandroid-backup files found\n");
+    		if (closedir(dir) < 0) {
+		  LOGE("Failure closing directory %s", path);
+	          goto out;
+    		}
+        return;
+    }
+
+    /* allocate the array for the file list menu (+1 for exit) */
+    files = (char **) malloc((total + 1) * sizeof(*files));
+    files[total] = NULL;
+
+    files[0] = (char *) malloc(9);
+    strcpy(files[0], "- Return");
+
+    list = (char **) malloc((total + 1) * sizeof(*files));
+    list[total] = NULL;
+
+    list[0] = (char *) malloc(9);
+    strcpy(list[0], "- Return");
+
+    /* set it up for the second pass */
+    rewinddir(dir);
+
+    /* put the names in the array for the menu */
+    i = 1;
+    while ((de = readdir(dir)) != NULL) {
+        if (de->d_name[0] == '.') {
+            continue;
+        } else {
+
+            files[i] = (char *) malloc(CLOCKWORK_PATH_LENGTH + strlen(de->d_name) + 1);
+            strcpy(files[i], CLOCKWORK_PATH);
+            strcat(files[i], de->d_name);
+
+            list[i] = (char *) malloc(strlen(de->d_name) + 1);
+            strcpy(list[i], de->d_name);
+
+            i++;
+
+        }
+    }
+
+    /* close directory handle */
+    if (closedir(dir) < 0) {
+        LOGE("Failure closing directory %s", path);
+        goto out;
+    }
+
+    ui_start_menu(headers, list);
+    int selected = 0;
+    int chosen_item = -1;
+
+    finish_recovery(NULL);
+    ui_reset_progress();
+    for (;;) {
+        int key = ui_wait_key();
+        int visible = ui_text_visible();
+
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
+            ++selected;
+            selected = ui_menu_select(selected);
+        } else if ((key == KEY_VOLUMEUP) && visible) {
+            --selected;
+            selected = ui_menu_select(selected);
+        } else if ((key == KEY_POWER) && visible ) {
+            chosen_item = selected;
+        }
+
+        // First item is "Return" to main menu
+
+        if (chosen_item == 0) {
+	  return;
+
+	}
+
+	if (chosen_item > 0) {
+            // turn off the menu, letting ui_print() to scroll output
+            // on the screen.
+            ui_end_menu();
+
+            ui_print("\nRestore Clockwork Backup ");
+            ui_print(list[chosen_item]);
+            ui_clear_key_queue();
+            ui_print(" ?\nPress Power to confirm,");
+            ui_print("\nany other key to abort.\n");
+            int confirm_apply = ui_wait_key();
+            if (confirm_apply == KEY_POWER) {
+                      
+                            ui_print("\nRestoring : ");
+       		            char cw_nandroid_command[200]="/sbin/nandroid-mobile.sh -r -e -a --cwmcompat --norecovery --nomisc --nosplash1 --nosplash2 --defaultinput -s ";
+
+			    strlcat(cw_nandroid_command, list[chosen_item], sizeof(cw_nandroid_command));
+
+                            pid_t pid = fork();
+                            if (pid == 0) {
+                                char *args[] = {"/sbin/sh", "-c", cw_nandroid_command , "1>&2", NULL};
                                 execv("/sbin/sh", args);
                                 fprintf(stderr, "\nCan't run nandroid-mobile.sh\n(%s)\n", strerror(errno));
         	                _exit(-1);
@@ -1093,10 +1274,11 @@ show_menu_wipe()
 #define ITEM_WIPE_CACHE    3
 #define ITEM_WIPE_SECURE   4
 #define ITEM_WIPE_EXT      5
-#define ITEM_WIPE_DALVIK   6
-#define ITEM_WIPE_BAT      7
-#define ITEM_WIPE_ROT      8
-#define ITEM_WIPE_SDCARD   9
+#define ITEM_WIPE_SYSTEM   6
+#define ITEM_WIPE_DALVIK   7
+#define ITEM_WIPE_BAT      8
+#define ITEM_WIPE_ROT      9
+#define ITEM_WIPE_SDCARD   10
 
     static char* items[] = { "- Return",
 			     "- Wipe ALL data/factory reset",
@@ -1104,7 +1286,8 @@ show_menu_wipe()
                              "- Wipe /cache",
 			     "- Wipe /sdcard/.android_secure",
                              "- Wipe /sd-ext",
-                             "- Wipe Dalvik-cache",
+                             "- Wipe /system",
+			     "- Wipe Dalvik-cache",
                              "- Wipe battery stats",
                              "- Wipe rotate settings",
 			     "- Wipe Sdcard",
@@ -1312,6 +1495,20 @@ show_menu_wipe()
                     if (!ui_text_visible()) return;
                     break;
 
+		case ITEM_WIPE_SYSTEM:
+                    ui_clear_key_queue();
+		    ui_print("\nWipe /system");
+                    ui_print("\nPress Power to confirm,");
+                    ui_print("\nany other key to abort.\n\n");
+                    int confirm_wipe_mysys = ui_wait_key();
+                    if (confirm_wipe_mysys == KEY_POWER) {
+                        erase_root("SYSTEM:");
+                        ui_print("/system wipe complete!\n\n");
+                    } else {
+                        ui_print("/system wipe aborted!\n\n");
+                    }
+                    if (!ui_text_visible()) return;
+                    break;
             }
 
             // if we didn't return from this function to reboot, show
@@ -1344,17 +1541,20 @@ show_menu_br()
 #define ITEM_NANDROID_EXIT 0
 #define ITEM_NANDROID_BCK  1
 #define ITEM_NANDROID_RES  2
-#define ITEM_GOOG_BCK  3
-#define ITEM_GOOG_RES  4
+#define ITEM_CWM_NANDROID 3
+#define ITEM_GOOG_BCK  4
+#define ITEM_GOOG_RES  5
+
 
 
 
     static char* items[] = { "- Return",
 			     "- Nand backup",
 			     "- Nand restore",
+			     "- Nand restore clockworkmod backup",
 			     "- Backup Google proprietary system files",
                              "- Restore Google proprietary system files",
-                             NULL };
+			     NULL };
 
     ui_start_menu(headers, items);
     int selected = 0;
@@ -1392,7 +1592,7 @@ show_menu_br()
 		case ITEM_NANDROID_BCK:
 		    ui_print("\n\n*** WARNING ***");
 		    ui_print("\nNandroid backups require minimum");
-		    ui_print("\n500mb SDcard space and may take a few");
+		    ui_print("\n700mb SDcard space and may take a few");
 		    ui_print("\nminutes to back up!\n\n");
 		    ui_print("\nUse Other/recoverylog2sd for errors.\n\n"); 
 		    show_menu_nandroid();
@@ -1422,7 +1622,13 @@ show_menu_br()
 				   "\nRestore complete!\n\n",
 				   "\nRestore aborted!\n\n");
 			break;
-             
+
+		case ITEM_CWM_NANDROID:
+			ui_print("\nExperimental Beta Feature\n\n");
+			make_clockwork_path();
+			choose_clockwork_file();
+			break;
+		             
             }
 
             // if we didn't return from this function to reboot, show
@@ -1634,15 +1840,13 @@ show_menu_other()
 #define ITEM_OTHER_RE2SD  2
 #define ITEM_OTHER_KEY_TEST 3
 #define ITEM_OTHER_BATTERY_LEVEL 4
-#define ITEM_OTHER_DANGER_WIPE_SYSTEM 5 
 
     static char* items[] = { "- Return",
-			     "- Fix apk uid mismatches",
+			     "- Fix Permissions",
 			     "- Move recovery.log to SD",
                              "- Debugging Test Key Codes",
 			     "- Check Battery Level",
-			     "- DANGEROUS!! Wipe /system",	
-				NULL };
+			     NULL };
 
     ui_start_menu(headers, items);
     int selected = 0;
@@ -1705,26 +1909,7 @@ show_menu_other()
 		case ITEM_OTHER_BATTERY_LEVEL:
 				check_my_battery_level();
 				break;
-
-
-		/*Commented out code too dangerous*/
-           	case ITEM_OTHER_DANGER_WIPE_SYSTEM:
-                    ui_clear_key_queue();
-		    ui_print("\nWipe /system");
-                    ui_print("\nDangerous & Irreversible!!!\n");
-		    ui_print("\nOnly Used to Fix Corrupted Partition!!!\n");
-		    ui_print("\nPress Power to confirm,");
-                    ui_print("\nany other key to abort.\n\n");
-                    int confirm_wipe_mysys = ui_wait_key();
-                    if (confirm_wipe_mysys == KEY_POWER) {
-                        erase_root("SYSTEM:");
-                        ui_print("/system wipe complete!\n\n");
-                    } else {
-                        ui_print("/system wipe aborted!\n\n");
-                    }
-                    if (!ui_text_visible()) return;
-                    break;
-
+		
 		}
 
             // if we didn't return from this function to reboot, show

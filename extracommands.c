@@ -304,6 +304,12 @@ void wipe_rotate_settings()
     ensure_root_path_unmounted("DATA:");
 }     
 
+void make_clockwork_path()
+{
+    ensure_root_path_mounted("SDCARD:");
+    __system("mkdir -p /sdcard/clockworkmod/backup");
+//    ensure_root_path_unmounted("SDCARD:");
+} 
 
 void check_my_battery_level()
 {

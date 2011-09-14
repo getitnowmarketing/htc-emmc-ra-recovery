@@ -26,5 +26,9 @@ wipe_rotate_settings();
 void 
 key_logger_test();
 
-void check_my_battery_level();
+void
+check_my_battery_level();
+
+void
+make_clockwork_path();
 
