@@ -1,6 +1,6 @@
 #!/sbin/sh
 
-# nandroid v2.2.2 - an Android backup tool for the G1 by infernix and brainaid
+# nandroid v2.2.3 - an Android backup tool for the G1 by infernix and brainaid
 # restore capability added by cyanogen
 
 # pensive modified to allow to add prefixes to backups, and to restore specific backups
@@ -18,6 +18,8 @@
 # pensive added list updates (more precisely *.zip) anywhere on the sdcard
 # Amon_RA : ext restore -> added check if ext backup is existing
 # Amon_RA : ext restore -> added check if ext parition is existing
+# Getitnowmarketing added android_secure restore
+# Getitnowmarketing added Clockwork 4.0 & 5.0 Nandroid restore compatibility
 
 # Requirements:
 
@@ -87,6 +89,7 @@ NOCACHE=0
 NOSPLASH1=0
 NOSPLASH2=0
 EXT=0
+ANDROID_SECURE=0
 
 COMPRESS=0
 GETUPDATE=0
@@ -106,6 +109,8 @@ DB="/dev/block/"
 RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
 BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
 MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
+YAFFSEXTASECURE=0
+CWMRESTORE=0
 
 DEFAULTUPDATEPATH="/sdcard/download"
 
@@ -191,7 +196,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -566,7 +571,7 @@ for option in $(getopt --name="nandroid-mobile v2.2.2" -l norecovery -l noboot -
 done
 
 $ECHO ""
-$ECHO "nandroid-mobile v2.2.1"
+$ECHO "nandroid-mobile v2.2.3"
 $ECHO ""
 
 let OPS=$BACKUP
@@ -756,7 +761,7 @@ fi
 
 
 if [ "$RESTORE" == 1 ]; then
-                batteryAtLeast 30
+                batteryAtLeast 20
 #		ENERGY=`cat /sys/class/power_supply/battery/capacity`
 #		if [ "`cat /sys/class/power_supply/battery/status`" == "Charging" ]; then
 #			ENERGY=100
@@ -903,14 +908,56 @@ if [ "$RESTORE" == 1 ]; then
                 if [ `ls system* 2>/dev/null | wc -l` == 0 ]; then
                     NOSYSTEM=1
                 fi
+
+		# Clockwork Restore Detection GNM
+		if [ `ls system.*.tar 2>/dev/null | wc -l` != 0 ]; then
+                    echo "Clockwork 5.0 system.*.tar detected"
+		    CWMRESTORE=1
+                fi
+		if [ `ls data.*.tar 2>/dev/null | wc -l` != 0 ]; then
+                    echo "Clockwork 5.0 data.*.tar detected"
+		    CWMRESTORE=1
+                fi
+		if [ `ls cache.*.tar 2>/dev/null | wc -l` != 0 ]; then
+                    echo "Clockwork 5.0 cache.*.tar detected"
+		    CWMRESTORE=1
+                fi
+
 		# Amon_RA : If there's no ext backup set ext to 0 so ext restore doesn't start                
+		if [ `ls sd-ext.img 2>/dev/null | wc -l` != 0 ]; then
+		    echo "Clockwork 4.0 sd-ext.img detected"
+		    mv sd-ext.img ext.img
+		fi		
+
+		if [ `ls sd-ext.*.tar 2>/dev/null | wc -l` != 0 ]; then
+		    echo "Clockwork 5.0 sd-ext.*.tar detected"
+		fi
+
 		if [ `ls ext* 2>/dev/null | wc -l` == 0 ]; then
-                    EXT=0
-                fi
+                    if [ `ls sd-ext.*.tar 2>/dev/null | wc -l` == 0 ]; then
+			EXT=0
+		else
+		        EXT=1
+                    fi
+		fi
 		# GNM : If there's no android_secure backup set androidsecure to 0 so android_secure restore doesn't start                
+		if [ `ls .android_secure.img 2>/dev/null | wc -l` != 0 ]; then
+		    echo "Clockwork 4.0 .android_secure.img detected"
+		    mv .android_secure.img android_secure.img
+		fi
+		
+		if [ `ls .android_secure.*.tar 2>/dev/null | wc -l` != 0 ]; then
+		    echo "Clockwork 5.0 .android_secure.*.tar detected"
+		fi
+
 		if [ `ls android_secure* 2>/dev/null | wc -l` == 0 ]; then
-                    ANDROID_SECURE=0
-                fi
+               	    if [ `ls .android_secure.*.tar 2>/dev/null | wc -l` == 0 ]; then
+			ANDROID_SECURE=0
+		else
+		    	ANDROID_SECURE=1
+                    fi
+		fi
+		
 
 
 		for image in boot recovery; do
@@ -945,25 +992,34 @@ if [ "$RESTORE" == 1 ]; then
 		    #$flash_image $image $image.img $OUTPUT
                 done
 
-		for image in data system; do
+		for image in data system cache; do
                         if [ "$NODATA" == "1" -a "$image" == "data" ]; then
                             $ECHO ""
                             $ECHO "Not restoring data image!"
                             $ECHO ""
                             continue
                         fi
-                        if [ "$NOSYSTEM" == "1" -a "$image" == "system" ]; then
+			if [ "$NOSYSTEM" == "1" -a "$image" == "system" ]; then
                             $ECHO ""
                             $ECHO "Not restoring system image!"
                             $ECHO ""
                             continue
                         fi
+						
 			$ECHO "Erasing /$image..."
 			cd /$image
 			rm -rf * 2>/dev/null
-			$ECHO "Unpacking $image image..."
-			$unyaffs $RESTOREPATH/$image.img $OUTPUT
-			cd /
+			
+			if [ "$CWMRESTORE" == "1" ];then
+				cd /
+				$ECHO "Unpacking Clockwork $image image..."
+				tar -xf $RESTOREPATH/$image.*.tar
+			else	
+				$ECHO "Unpacking $image image..."
+		        	$unyaffs $RESTOREPATH/$image.img $OUTPUT
+				cd /
+			fi
+			 
 			sync
 			umount /$image
 		done
@@ -989,8 +1045,13 @@ if [ "$RESTORE" == 1 ]; then
 	                    else
 	                        CWD=`pwd`
 	                        cd /sd-ext
+				echo "Restoring sd-ext"
 	                        # Depending on whether the ext backup is compressed we do either or.
-	                        if [ -e $RESTOREPATH/ext.tar ]; then 
+	                       if  [ -e $RESTOREPATH/ext.img ]; then
+				    rm -rf ./* 2>/dev/null
+				    $unyaffs $RESTOREPATH/ext.img 
+			       else
+				if [ -e $RESTOREPATH/ext.tar ]; then 
 	                            rm -rf ./* 2>/dev/null
 	                            tar -x$TARFLAGS -f $RESTOREPATH/ext.tar
 	                        else
@@ -1002,11 +1063,18 @@ if [ "$RESTORE" == 1 ]; then
 	                                    rm -rf ./* 2>/dev/null
 	                                    tar -x$TARFLAGS -jf $RESTOREPATH/ext.tar.bz2
 	                                else
-	                                    $ECHO "Warning: --ext specified but cannot find the ext backup."
-	                                    $ECHO "Warning: your phone may be in an inconsistent state on reboot."
-	                                fi
+					    if [ -e $RESTOREPATH/sd-ext.*.tar ]; then
+					        echo "Restoring Clockwork sd-ext.*.tar"
+						rm -rf ./* 2>/dev/null
+						tar -xf $RESTOREPATH/sd-ext.*.tar
+					    else	
+	                                    	$ECHO "Warning: --ext specified but cannot find the ext backup."
+	                                    	$ECHO "Warning: your phone may be in an inconsistent state on reboot."
+	                                    fi
+					fi
 	                            fi
 	                        fi
+			     fi
 	                        cd $CWD
 	                        sync
 	                        umount /sd-ext
@@ -1023,8 +1091,15 @@ if [ "$RESTORE" == 1 ]; then
 
 	                        CWD=`pwd`
 	                        cd /sdcard
+				echo "Restoring android_secure"
 	                        # Depending on whether the android_secure backup is compressed we do either or.
-	                        if [ -e $RESTOREPATH/android_secure.tar ]; then 
+	                        if  [ -e $RESTOREPATH/android_secure.img ]; then
+				     mkdir -p /sdcard/.android_secure
+				     cd .android_secure
+				     rm -rf ./* 2>/dev/null
+				     $unyaffs $RESTOREPATH/android_secure.img 
+			       else
+				if [ -e $RESTOREPATH/android_secure.tar ]; then 
 	                            rm -rf .android_secure 2>/dev/null
 	                            tar -x$TARFLAGS -f $RESTOREPATH/android_secure.tar
 	                        else
@@ -1036,11 +1111,18 @@ if [ "$RESTORE" == 1 ]; then
 	                                    rm -rf .android_secure 2>/dev/null
 	                                    tar -x$TARFLAGS -jf $RESTOREPATH/android_secure.tar.bz2
 	                                else
-	                                    $ECHO "Warning: --android_secure specified but cannot find the android_secure backup."
-	                                    $ECHO "Warning: your phone may be in an inconsistent state on reboot."
-	                                fi
+	                                    if [ -e $RESTOREPATH/.android_secure.*.tar ]; then
+	                                        echo "Restoring Clockwork .android_secure.*.tar"
+						rm -rf .android_secure 2>/dev/null
+	                                        tar -xf $RESTOREPATH/.android_secure.*.tar
+					    else
+	                                        $ECHO "Warning: --android_secure specified but cannot find the android_secure backup."
+	                                        $ECHO "Warning: your phone may be in an inconsistent state on reboot."
+	                                    fi
+					fi
 	                            fi
-	                        fi
+	                          fi
+				fi
 	                        cd $CWD
 	                        sync
 		fi
@@ -1299,7 +1381,10 @@ if [ "$EXT" == 1 ]; then
         CWD=`pwd`
         cd /sd-ext
         # Depending on the whether we want it compressed we do either or.
-        if [ "$COMPRESS" == 0 ]; then 
+        if [ "$YAFFSEXTASECURE" == 0 ]; then
+	$mkyaffs2image /sd-ext $DESTDIR/ext.img
+	else
+	if [ "$COMPRESS" == 0 ]; then 
             tar -cvf $DESTDIR/ext.tar ./*
         else
             if [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
@@ -1307,6 +1392,7 @@ if [ "$EXT" == 1 ]; then
             else
                 tar -cvzf $DESTDIR/ext.tgz ./*
             fi
+          fi
         fi
         cd $CWD
         umount /sd-ext
@@ -1320,7 +1406,10 @@ if [ "$ANDROID_SECURE" == 1 ]; then
         CWD=`pwd`
         cd /sdcard
         # Depending on the whether we want it compressed we do either or.
-        if [ "$COMPRESS" == 0 ]; then 
+        if [ "$YAFFSEXTASECURE" == 0 ]; then
+	$mkyaffs2image /sdcard/.android_secure $DESTDIR/android_secure.img
+	else
+	if [ "$COMPRESS" == 0 ]; then 
             tar -cvf $DESTDIR/android_secure.tar ./.android_secure*
         else
             if [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
@@ -1328,7 +1417,8 @@ if [ "$ANDROID_SECURE" == 1 ]; then
             else
                 tar -cvzf $DESTDIR/android_secure.tgz ./.android_secure*
             fi
-        fi
+          fi
+	fi
         cd $CWD
 fi
 
