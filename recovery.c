@@ -2131,13 +2131,13 @@ show_menu_ext4_data()
 			       NULL };
 
 // these constants correspond to elements of the items[] list.
-//#define ITEM_EXT4_CHK          0
 #define ITEM_EXT4_EXIT         0
-#define ITEM_EXT4_FORMEXT4     1
-#define ITEM_EXT4_FORMEXT3     2
+#define ITEM_EXT4_CHK          1
+#define ITEM_EXT4_FORMEXT4     2
+#define ITEM_EXT4_FORMEXT3     3
 
     static char* items[] = { "- Return",
-			     //"- Check /data fs format",
+			     "- Check FS format",
 			     "- Format to ext4",
 			     "- Format to ext3",
                               NULL };
@@ -2175,8 +2175,9 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_EXIT:
 			return;
 
-	/*	
+		
 		case ITEM_EXT4_CHK:
+			/*
 			run_script("\nChecking ext filesystem",
 				   "\non /data : ",
 				   "/sbin/partext4 check",
@@ -2184,8 +2185,10 @@ ui_start_menu(headers, items);
 				   "\nError : Run 'partext4 check' via adb!\n\n",
 				   "\nExt type check complete!\n\n",
 				   "\nExt type check aborted!\n\n");
+			*/
+				check_fs();
 			break;
-	*/
+	
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
 			ui_print("\nFormat /data /system /cache to ext4?");

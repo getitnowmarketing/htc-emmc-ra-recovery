@@ -32,3 +32,6 @@ check_my_battery_level();
 void
 make_clockwork_path();
 
+void
+check_fs();
+

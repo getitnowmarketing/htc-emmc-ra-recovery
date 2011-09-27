@@ -323,3 +323,31 @@ void check_my_battery_level()
     ui_print("\nBattery Level: %s%%\n", cap_s);
 }
 
+void check_fs() {
+        
+	ensure_root_path_mounted("SYSTEM:");
+	ensure_root_path_mounted("DATA:");
+	ensure_root_path_mounted("CACHE:");
+
+	static char discard[1024];
+        char device[64], name[64], type[64];
+        FILE *mounts = fopen("/proc/mounts", "r");
+ 	
+        while (fscanf(mounts, "%64s %64s %64s %1024[^\n]", device, name, type, discard) != EOF) {
+                /* Enjoy the whitespace! */
+                if (
+                        !strcmp(name, "/data") ||
+                        !strcmp(name, "/system") ||
+                        !strcmp(name, "/cache") 
+                 //       !strcmp(name, "/proc")
+                )
+                       
+			 /* Only prints if filter matches */
+                        ui_print("name: %s; type: %s\n", name, type);
+  	}
+
+	ensure_root_path_unmounted("SYSTEM:");
+	ensure_root_path_unmounted("DATA:");
+	ensure_root_path_unmounted("CACHE:");
+	fclose(mounts);
+}

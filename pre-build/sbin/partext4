@@ -24,57 +24,61 @@ case $1 in
 		echo "/data already mounted"
 	 else
 		mount /data 2>/dev/null
-		sleep 2
+		
 	 fi
  	
 	if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "/system already mounted"
 	 else
 		mount /system 2>/dev/null
-		sleep 2
+		
 	 fi	
 		
 	if [ "$CHECKMOUNTEDC" == "on" ]; then
 		echo "/cache already mounted"
 	 else
 		mount /cache 2>/dev/null
-		sleep 2
+		
 	 fi
 		  #Grab 5th collumn from the mount output greping only line with data
 		FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
 		echo "Filesystem for Data is: $FSTYPE"
-		
+				
 		FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'` 
 		echo "Filesystem for System is: $FSTYPES"
-
+		
 	 	FSTYPES=`mount | grep "$MECHCACPART" | awk '{print $5}'` 
 		echo "Filesystem for Cache is: $FSTYPES"
-	 ;;
+
+		 ;;
         formatext4)
 	  if [ "$CHECKMOUNTEDD" == "on" ]; then
 	  	echo "/data already mounted"
 	  else
 		echo "mounting /data to check fs type"
 		mount /data 2>/dev/null
-		sleep 2
+		
 	  fi
-          FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
-	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
-  	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'`
-
+          
 	  if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "/system already mounted"
 	  else
+		echo "mounting /system to check fs type"
 		mount /system 2>/dev/null
-		sleep 2
+		
 	  fi
 	  
 	  if [ "$CHECKMOUNTEDC" == "on" ]; then
 		echo "/cache already mounted"
 	  else
+		echo "mounting /cache to check fs type"
 		mount /cache 2>/dev/null
-		sleep 2
+		
 	  fi	  
+
+	  FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
+	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
+  	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'`
 
 		#Check if FS is ext4 already
 	  if [ "$FSTYPE" == "ext4" ]; then
@@ -93,6 +97,7 @@ case $1 in
 	  fi
 	    	
 	    #Check if FS is ext3
+	  FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'` 
 	  if [ "$FSTYPE" == "ext3" ]; then
 		echo "/data is ext3 ..proceed"
 	  else
@@ -101,6 +106,7 @@ case $1 in
 	  fi
 
 	    #Check if FS is ext3
+	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
 	  if [ "$FSTYPES" == "ext3" ]; then
 		echo "/system is ext3 ..proceed"
 	  else
@@ -109,6 +115,7 @@ case $1 in
 	  fi
 	  
 	   #Check if FS is ext3
+	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'`
 	  if [ "$FSTYPEC" == "ext3" ]; then
 		echo "/cache is ext3 ..proceed"
 	  else
@@ -117,29 +124,29 @@ case $1 in
 	  fi	 
 		echo "unmounting /data"
 		umount /data 2>/dev/null
-		sleep 2
+		
 
 		echo "unmounting /system"
 		umount /system 2>/dev/null
-		sleep 2
+		
 
 		echo "unmounting /cache"
 		umount /cache 2>/dev/null
-		sleep 2
+		
 	 
 		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHDATAPART"
 		"$DE2FSCK" -fpDC0 "$MECHDATAPART"
-		sleep 2
+		
 		echo "/data done"
 
 		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHSYSPART"
 		"$DE2FSCK" -fpDC0 "$MECHSYSPART"
-		sleep 2
+		
 		echo "/system done"
 
 		"$DTUNE2FS" -O extents,uninit_bg,dir_index "$MECHCACPART"
 		"$DE2FSCK" -fpDC0 "$MECHCACPART"
-		sleep 2
+		
 		echo "/cache done"	
 	 ;;
 
@@ -150,72 +157,79 @@ case $1 in
 	  else
 		echo "mounting /data to check fs type"
 		mount /data 2>/dev/null
-		sleep 2
+		
 	  fi
-          FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'`
-	  FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
-	  FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'` 
+            	  
 
 	  if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "/system already mounted"
 	  else
 		mount /system 2>/dev/null
-		sleep 2
+		
 	  fi
 
 	  if [ "$CHECKMOUNTEDC" == "on" ]; then
 		echo "/cache already mounted"
 	  else
 		mount /cache 2>/dev/null
-		sleep 2
+		
 	  fi
 	
+          FSTYPE=`mount | grep "$MECHDATAPART" | awk '{print $5}'`
 	  if [ "$FSTYPE" == "ext4" ]; then
 		echo "/data is ext4 ..proceed"
 		
 	  else 
 		echo "/data is not currently ext4"
-		exit 1
+		echo "Filesystem for Data is: $FSTYPE"
+                exit 1
 	  fi
-
+          
+          FSTYPES=`mount | grep "$MECHSYSPART" | awk '{print $5}'`
 	  if [ "$FSTYPES" == "ext4" ]; then
 		echo "/system is ext4 ..proceed"
 		
 	  else 
 		echo "/system is not currently ext4"
+		echo "Filesystem for System is: $FSTYPES"
 		exit 1
 	  fi
-	
+	  
+          FSTYPEC=`mount | grep "$MECHCACPART" | awk '{print $5}'`
           if [ "$FSTYPEC" == "ext4" ]; then
 		echo "/cache is ext4 ..proceed"
 		
 	  else 
 		echo "/cache is not currently ext4"
+		echo "Filesystem for Cache is: $FSTYPES"
 		exit 1
 	  fi	
 		echo "unmounting /data"
 		umount /data 2>/dev/null
-		sleep 2
+		
 		echo "preparing to repartition /data as ext3"
 		"$DMKE2FS" -t ext3 "$MECHDATAPART"
 		"$DE2FSCK" -fp "$MECHDATAPART"
-		sleep 2
+		echo "/data as ext3 done"
+		
 
 		echo "unmounting /system"
 		umount /system 2>/dev/null
-		sleep 2
+		
 		echo "preparing to repartition /system as ext3"
 		"$DMKE2FS" -t ext3 "$MECHSYSPART"
 		"$DE2FSCK" -fp "$MECHSYSPART"
-		sleep 2
+		echo "/system as ext3 done"
+		
 
 		echo "unmounting /cache"
 		umount /cache 2>/dev/null
-		sleep 2
+		
 		echo "preparing to repartition /cache as ext3"
 		"$DMKE2FS" -t ext3 "$MECHCACPART"
 		"$DE2FSCK" -fp "$MECHCACPART"
-		sleep 2
+		echo "/cache as ext3 done"
+		
 	 ;;
 	--)
 	 ;;
@@ -224,19 +238,19 @@ esac
 	if [ "$CHECKMOUNTEDD" == "on" ]; then
 		echo "unmounting /data"
 		umount /data 2>/dev/null
-		sleep 2
+		
 	fi
 	CHECKMOUNTEDS=`mount | grep "$MECHSYSPART" | awk '{print $2}'` 
 	if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "unmounting /system"
 		umount /system 2>/dev/null
-		sleep 2
+		
 	fi
 	CHECKMOUNTEDC=`mount | grep "$MECHCACPART" | awk '{print $2}'` 
 	if [ "$CHECKMOUNTEDS" == "on" ]; then
 		echo "unmounting /cache"
 		umount /cache 2>/dev/null
-		sleep 2
+		
 	fi		
 	
 	exit 0
