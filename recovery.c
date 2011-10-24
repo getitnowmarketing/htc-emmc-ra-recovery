@@ -1115,13 +1115,13 @@ show_menu_nandroid()
 		{
 
 
-				if (items[i]=="- [X] sd-ext") strcat(nandroid_command, " -e");
-				if (items[i]=="- [X] .android_secure") strcat(nandroid_command, " -a");
-				if (items[i]=="- [ ] recovery") strcat(nandroid_command, " --norecovery");
-				if (items[i]=="- [ ] boot") strcat(nandroid_command, " --noboot");
-				if (items[i]=="- [ ] data") strcat(nandroid_command, " --nodata");
-				if (items[i]=="- [ ] system") strcat(nandroid_command, " --nosystem");
-				if (items[i]=="- [ ] cache") strcat(nandroid_command, " --nocache");
+				if (strcmp( items[i], "- [X] sd-ext") == 0) strcat(nandroid_command, " -e");
+				if (strcmp( items[i], "- [X] .android_secure") == 0) strcat(nandroid_command, " -a");
+				if (strcmp( items[i], "- [ ] recovery") == 0) strcat(nandroid_command, " --norecovery");
+				if (strcmp( items[i], "- [ ] boot") == 0) strcat(nandroid_command, " --noboot");
+				if (strcmp( items[i], "- [ ] data") == 0) strcat(nandroid_command, " --nodata");
+				if (strcmp( items[i], "- [ ] system") == 0) strcat(nandroid_command, " --nosystem");
+				if (strcmp( items[i], "- [ ] cache") == 0) strcat(nandroid_command, " --nocache");
                 	        
 		i++;	
 		}
