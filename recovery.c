@@ -2481,7 +2481,6 @@ show_menu_developer()
 #define ITEM_DEV_EXT_TOGGLE 4
 #define ITEM_DEV_RB_BOOT 5
 #define ITEM_DEV_RB_REC 6
-#define ITEM_DEV_TEST 7
 
     static char* items[] = { "- Return",
 			     "- Make and flash boot from zimage",
@@ -2489,8 +2488,7 @@ show_menu_developer()
 			     "- Install eng (unguarded) su",
 			     "- Toggle full format ext3 ext4",
 			     "- Reboot to bootloader",
-			     "- Reboot recovery",
-			     "- Test",				
+			     "- Reboot recovery",			     	
                              	NULL };
 
     ui_start_menu(headers, items);
@@ -2583,9 +2581,7 @@ show_menu_developer()
 
 		case ITEM_DEV_RB_BOOT:
 				rb_bootloader();
-
-		case ITEM_DEV_TEST:
-				ui_print(" confirm is: %s", confirm_key_hack(CONFIRM) );
+	
 
 			break;
 
