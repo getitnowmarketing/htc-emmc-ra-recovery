@@ -58,6 +58,15 @@ void toggle_signature_check()
     if (signature_check_enabled == 0)  ui_print("Flashing unsigned zips may corrupt your system!\n");
 }
 
+int full_ext_format_enabled = 0;
+
+void toggle_full_ext_format()
+{
+    full_ext_format_enabled = !full_ext_format_enabled;
+    ui_print("Full Format Ext3/4: %s\n", full_ext_format_enabled ? "Enabled" : "Disabled");
+    if (full_ext_format_enabled == 1)  ui_print("Full mke2fs format of ext3-ext4 enabled!\n");
+}
+
 void key_logger_test()
 {
 		//finish_recovery(NULL);
@@ -311,6 +320,102 @@ void make_clockwork_path()
 //    ensure_root_path_unmounted("SDCARD:");
 } 
 
+int format_ext3(const char* device, const char* mount_pt, const char* root)
+{
+ensure_root_path_unmounted(root);
+
+if (0 != ensure_root_path_unmounted(root))
+    {
+	static char tmp_ext3[PATH_MAX];
+	sprintf(tmp_ext3, "/sbin/umount %s", mount_pt);
+	__system(tmp_ext3);
+    }
+if (0 != ensure_root_path_unmounted(root))
+    {
+        ui_print("Error unmounting %s!\n", mount_pt);
+        ui_print("Skipping format...\n");
+	return 0;
+    }
+
+static char fmt_ext3[PATH_MAX];
+static char e2f_ext3[PATH_MAX];
+
+sprintf(fmt_ext3, "/sbin/mke2fs -t ext3 %s", device);
+__system(fmt_ext3);
+
+sprintf(e2f_ext3, "/sbin/e2fsck -fp %s", device);
+__system(e2f_ext3);
+
+ui_print("Format of %s as ext3 complete\n\n", mount_pt);
+return 0;
+}
+
+int format_ext4(const char* device, const char* mount_pt, const char* root)
+{
+ensure_root_path_unmounted(root);
+
+if (0 != ensure_root_path_unmounted(root))
+    {
+	static char tmp_ext4[PATH_MAX];
+	sprintf(tmp_ext4, "/sbin/umount %s", mount_pt);
+	__system(tmp_ext4);
+    }
+if (0 != ensure_root_path_unmounted(root))
+    {
+        ui_print("Error unmounting %s!\n", mount_pt);
+        ui_print("Skipping format...\n\n");
+	return 0;
+    }
+
+static char fmt_ext4[PATH_MAX];
+static char e2f_ext4[PATH_MAX];
+static char upg_ext4[PATH_MAX];
+
+sprintf(fmt_ext4, "/sbin/mke2fs -t ext3 %s", device);
+__system(fmt_ext4);
+
+sprintf(upg_ext4, "sbin/tune2fs -O extents,uninit_bg,dir_index %s", device);
+__system(upg_ext4);
+
+sprintf(e2f_ext4, "/sbin/e2fsck -fpDC0 %s", device);
+__system(e2f_ext4);
+
+ui_print("Format of %s as ext4 complete\n\n", mount_pt);
+return 0;
+}
+
+int upgrade_ext3(const char* device, const char* mount_pt, const char* root)
+{
+LOGW("upgrade_ext3 %s %s %s\n", device, mount_pt, root);
+
+ensure_root_path_unmounted(root);
+
+if (0 != ensure_root_path_unmounted(root))
+    {
+	static char tmp_upg[PATH_MAX];
+	sprintf(tmp_upg, "/sbin/umount %s", mount_pt);
+	__system(tmp_upg);
+    }
+if (0 != ensure_root_path_unmounted(root))
+    {
+        ui_print("Error unmounting %s!\n", mount_pt);
+        ui_print("Skipping format...\n\n");
+	return 0;
+    }
+
+static char upg[PATH_MAX];
+static char e2f_upg[PATH_MAX];
+
+sprintf(upg, "sbin/tune2fs -O extents,uninit_bg,dir_index %s", device);
+__system(upg);
+
+sprintf(e2f_upg, "/sbin/e2fsck -fpDC0 %s", device);
+__system(e2f_upg);
+
+ui_print("Upgrade of %s to ext4 complete\n\n", mount_pt);
+return 0;
+}
+
 void check_my_battery_level()
 {
 	
@@ -320,7 +425,7 @@ void check_my_battery_level()
     fgets(cap_s, 3, cap);
     fclose(cap);
 
-    ui_print("\nBattery Level: %s%%\n", cap_s);
+    ui_print("\nBattery Level: %s%%\n\n", cap_s);
 }
 
 void check_fs() {
@@ -351,3 +456,300 @@ void check_fs() {
 	ensure_root_path_unmounted("CACHE:");
 	fclose(mounts);
 }
+
+int check_fs_format(const char* root, const char* mnt_pt, int chk_for_upg_fs, int force_ext3) 
+{
+
+if (!strcmp(root, "SDEXT:")) {
+	return 0;
+	}
+
+	if (!strcmp(root, "SYSTEM:") || !strcmp(root, "DATA:") || !strcmp(root, "CACHE:")) {
+
+	ensure_root_path_mounted(root);
+
+	if (0 != ensure_root_path_mounted(root)) {
+        ui_print("Error mounting %s!\n", mnt_pt);
+        return 0;
+    	}
+
+static char discard1[1024];
+        char device1[64], name1[64], type1[64];
+        FILE *mountsf = fopen("/proc/mounts", "r");
+ 	
+        while (fscanf(mountsf, "%64s %64s %64s %1024[^\n]", device1, name1, type1, discard1) != EOF) {
+                /* Enjoy the whitespace! */
+                		
+		if (
+                        !strcmp(name1, mnt_pt)
+		   )
+		LOGW("name: %s; device: %s; type: %s\n", name1, device1, type1);		
+	}
+	fclose(mountsf);	
+if (!strcmp(type1, "ext3") || !strcmp(type1, "ext4")) {
+	return format_ext(device1, type1, mnt_pt, root, chk_for_upg_fs, force_ext3);
+ } else {
+	return 0;
+	}
+}	 			
+
+return 0;	
+}
+int format_ext(const char *device, const char *type, const char *mount_pt, const char* root, int chk_for_upg_fs, int force_ext3)
+{
+
+ensure_root_path_unmounted(root);
+
+if (0 != ensure_root_path_unmounted(root))
+    {
+	static char tmp1[PATH_MAX];
+	sprintf(tmp1, "/sbin/umount %s", mount_pt);
+	__system(tmp1);
+    }
+if (0 != ensure_root_path_unmounted(root))
+    {
+        ui_print("Error unmounting %s!\n", mount_pt);
+        ui_print("Skipping format...\n\n");
+	return 0;
+    }
+
+if (force_ext3) {
+return format_ext3(device, mount_pt, root);
+}
+
+if (!strcmp(type, "ext3")) {
+
+if (!chk_for_upg_fs) {
+
+return format_ext3(device, mount_pt, root);
+
+} else if (chk_for_upg_fs) {
+
+return upgrade_ext3(device, mount_pt, root);
+}
+
+}
+if (!strcmp(type, "ext4")) {
+
+if (chk_for_upg_fs) {
+ui_print("%s is already formatted as %s\n\n", mount_pt, type);
+return 0;
+}
+
+return format_ext4(device, mount_pt, root);
+}
+
+return 0;
+}
+
+int get_boot_device(const char *root, const char* request)
+{
+char got_it[PATH_MAX];
+get_root_device_info(root, request, got_it);
+dump_device(got_it);
+return 0;
+}
+
+int dump_device(const char *device)
+{
+static char dump[PATH_MAX];
+sprintf(dump, "dd if=%s of=/tmp/mkboot/boot.img bs=4096", device);
+__system(dump);
+LOGW("dump cmd is %s\n", dump);
+return 0;
+}
+
+void unpack_boot()
+{
+__system("unpackbootimg /tmp/mkboot/boot.img /tmp/mkboot");
+__system("mkbootimg.sh");
+__system("flash_image boot /tmp/mkboot/newboot.img");
+__system("sync");
+}
+
+void setup_mkboot()
+{
+ensure_root_path_mounted("SDCARD:");
+    __system("mkdir -p /sdcard/mkboot");
+    __system("mkdir -p /sdcard/mkboot/zImage");
+    __system("mkdir -p /sdcard/mkboot/modules");
+    __system("rm /sdcard/mkboot/zImage/*");
+    __system("rm /sdcard/mkboot/modules/*");
+    delete_file("/tmp/mkboot");
+    __system("mkdir -p /tmp/mkboot");
+    __system("chmod 0755 /tmp/mkboot/");
+}
+
+int check_file_exists(const char* file_path)
+{
+struct stat st;
+if (0 != stat(file_path, &st)) {
+	LOGW("Error %s doesn't exist\n", file_path);
+	return -1;
+} else {
+	return 0;
+}
+}
+
+int is_dir(const char* file_path)
+/* dir ret 0, file ret 1, err ret -1 */
+{
+if (0 == (check_file_exists(file_path))) {
+	struct stat s;
+	stat(file_path, &s);
+if (!(S_ISDIR(s.st_mode))) {
+	return 0;
+} else if (!(S_ISREG(s.st_mode))) {
+	return 1;
+} else {
+	return -1;
+}
+
+}
+return -1;
+}
+
+
+int copy_file(const char* source, const char* dest)
+{
+/* need to add a check to see if dest dir exists and volume is mounted */
+
+if (0 == (is_dir(source))) {
+	char copy[PATH_MAX];
+	sprintf(copy, "cp -r %s %s", source, dest);
+	__system(copy);
+return 0;
+}
+
+if (1 == (is_dir(source))) {
+	char copy[PATH_MAX];
+	sprintf(copy, "cp %s %s", source, dest);
+	__system(copy);
+return 0;
+}
+
+return 1;
+}
+
+void do_module()
+{
+ensure_root_path_mounted("SYSTEM:");
+ensure_root_path_mounted("SDCARD:");
+delete_file("/system/lib/modules");
+copy_file("/sdcard/mkboot/modules", "/system/lib/modules");
+__system("chmod 0755 /system/lib/modules");
+__system("chmod 0644 /system/lib/modules/*");
+ensure_root_path_unmounted("SYSTEM:");
+ensure_root_path_unmounted("SDCARD:");
+}
+
+void do_make_new_boot()
+{
+setup_mkboot();
+ui_print("\nConnect phone to pc");
+ui_print("\nand copy new zImage and");
+ui_print("\nmodules to /sdcard/mkboot");
+ui_print("\nzImage & modules folder\n\n");
+usb_toggle_sdcard();
+ensure_root_path_mounted("SDCARD:");
+get_boot_device("BOOT:", "device");
+if (0 == (copy_file("/sdcard/mkboot/zImage/zImage", "/tmp/mkboot/zImage"))) {
+	unpack_boot();
+	do_module();
+	ui_print("New boot created and flashed!!\n\n");
+} else {
+	ui_print("Error missing /sdcard/mkboot/zImage/zImage\n\n");
+}
+delete_file("/tmp/mkboot");
+}
+
+void install_su(int eng_su)
+{
+ensure_root_path_mounted("SYSTEM:");
+ensure_root_path_mounted("DATA:");
+ensure_root_path_mounted("CACHE:");
+
+struct stat sd;
+        if (0 == stat("/dev/block/mmcblk1p2", &sd)) {
+ensure_root_path_mounted("SDEXT:");
+__system("rm /sd-ext/dalvik-cache/*com.noshufou.android.su*classes.dex");
+__system("rm -rf /sd-ext/data/com.noshufou.android.su");
+__system("rm /sd-ext/app/com.noshufou.android.su*.apk");
+__system("rm /sd-ext/dalvik-cache/*uperuser*classes.dex");
+ensure_root_path_unmounted("SDEXT:");
+}
+
+__system("rm -rf /data/data/com.noshufou.android.su");
+__system("rm /data/app/com.noshufou.android.su*.apk");
+__system("rm /data/dalvik-cache/*com.noshufou.android.su*classes.dex");
+__system("rm /data/dalvik-cache/*uperuser*classes.dex");
+
+__system("rm /cache/dalvik-cache/*com.noshufou.android.su*classes.dex");
+__system("rm /cache/dalvik-cache/*uperuser*classes.dex");
+
+__system("rm /system/app/*uperuser.apk");
+
+if ((0 == (check_file_exists("/system/bin/su"))) || (0 == (check_file_exists("/system/xbin/su"))) ){
+	ui_print("Removing old su\n");
+}
+delete_file("/system/bin/su");
+delete_file("/system/xbin/su");
+if (!eng_su) {
+	copy_file("/extra/su", "/system/bin/su");
+	copy_file("/extra/Superuser.apk", "/system/app/Superuser.apk");
+	__system("chmod 0644 /system/app/Superuser.apk");
+} else {
+	copy_file("/extra/suhack", "/system/bin/su");
+}
+__system("mkdir -p /system/xbin");
+__system("chmod 06755 /system/bin/su");
+__system("ln -s /system/bin/su /system/xbin/su");
+ensure_root_path_unmounted("DATA:");
+ensure_root_path_unmounted("SYSTEM:");
+ensure_root_path_unmounted("CACHE:");
+ui_print("su install complete\n\n");
+}
+
+int delete_file(const char* file)
+{
+/* need to add a check to see if volume is mounted */
+
+if (0 == (is_dir(file))) {
+	char del[PATH_MAX];
+	sprintf(del, "rm -rf %s ", file);
+	__system(del);
+	return 0;
+}
+
+if (1 == (is_dir(file))) {
+	char del[PATH_MAX];
+	sprintf(del, "rm %s ", file);
+	__system(del);
+	return 0;
+}
+
+return 1;
+}
+
+void rb_bootloader()
+{
+sync();
+ensure_root_path_unmounted("DATA:");
+ensure_root_path_unmounted("SYSTEM:");
+ensure_root_path_unmounted("CACHE:");
+ensure_root_path_unmounted("SDCARD:");
+ensure_root_path_unmounted("SDEXT:");
+__system("/sbin/reboot bootloader");
+}
+
+void rb_recovery()
+{
+sync();
+ensure_root_path_unmounted("DATA:");
+ensure_root_path_unmounted("SYSTEM:");
+ensure_root_path_unmounted("CACHE:");
+ensure_root_path_unmounted("SDCARD:");
+ensure_root_path_unmounted("SDEXT:");
+__system("/sbin/reboot recovery");
+}
+

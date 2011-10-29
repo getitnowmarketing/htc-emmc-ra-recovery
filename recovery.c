@@ -2135,11 +2135,23 @@ show_menu_ext4_data()
 #define ITEM_EXT4_CHK          1
 #define ITEM_EXT4_FORMEXT4     2
 #define ITEM_EXT4_FORMEXT3     3
+#define ITEM_EXT4_SYSEXT3      4
+#define ITEM_EXT4_DATAEXT3     5
+#define ITEM_EXT4_CACEXT3      6
+#define ITEM_EXT4_SYSEXT4      7
+#define ITEM_EXT4_DATAEXT4     8
+#define ITEM_EXT4_CACEXT4      9
 
     static char* items[] = { "- Return",
 			     "- Check FS format",
-			     "- Format to ext4",
-			     "- Format to ext3",
+			     "- Upgrade all to ext4",
+			     "- Format all to ext3",
+			     "- Restore system ext3",
+			     "- Restore data ext3",
+			     "- Restore cache ext3",
+			     "- Upgrade system ext4",
+			     "- Upgrade data ext4",
+			     "- Upgrade cache ext4",
                               NULL };
 
 ui_start_menu(headers, items);
@@ -2191,30 +2203,31 @@ ui_start_menu(headers, items);
 	
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
-			ui_print("\nFormat /data /system /cache to ext4?");
+			ui_print("\nUpgrade /data /system /cache to ext4?");
 			ui_print("\nPress Power to confirm,");
-		       	ui_print("\nany other key to abort.");
-			ui_print("\nThis wipes /data , /cache & /system!!\n");
-			ui_print("\nYou will need to flash a rom,");
-			ui_print("\nwhen done,\n");
-			ui_print("\nor restore a nandroid then wipe,");
-			ui_print("\n/data manually when done.\n");
+		       	ui_print("\nany other key to abort.\n");
+			
 			int confirm_formext4 = ui_wait_key();
 				if (confirm_formext4 == KEY_POWER) {
-	                          // ui_print("\nFormatting data as ext4...\n");     
-				   erase_root("DATA:");
-				   erase_root("CACHE:");
-				   erase_root("SYSTEM:");
+	                          /*
+				   // ui_print("\nFormatting data as ext4...\n");     
+				   //erase_root("DATA:");
+				   //erase_root("CACHE:");
+				   //erase_root("SYSTEM:");
 				run_script("\nFormat ext4",
 					 "\nFormatting ext4 : ",
 					 "/sbin/partext4 formatext4",
 				  	 "\nUnable to execute partext4!\n(%s)\n",
-				  	 "\nError : Run 'partext4 formatext4' via adb!\n\n",
+				  	 "\nOops... something went wrong!\nPlease check the recovery log!\n\n",
 				  	 "\nExt4 format complete!\n\n",
 				  	 "\nExt4 format aborted!\n\n");
 				  // ui_print("\nFormatting data as ext4 complete.\n\n");
+				  */
+				check_fs_format("DATA:", "/data", 1, 0);
+				check_fs_format("SYSTEM:", "/system", 1, 0);
+				check_fs_format("CACHE:", "/cache", 1, 0);
 				} else {
-					 ui_print("\nFormatting data & system as ext4 aborted.\n\n");
+					 ui_print("\nFormatting data & system & cache as ext4 aborted.\n\n");
 				}
 				if (!ui_text_visible()) return;
 				
@@ -2233,6 +2246,7 @@ ui_start_menu(headers, items);
 			int confirm_formext3 = ui_wait_key();
 				if (confirm_formext3 == KEY_POWER) {
 	                          // ui_print("\nReformatting data as ext3...\n");     
+				   /*
 				   erase_root("DATA:");
 				   erase_root("CACHE:");
 				   erase_root("SYSTEM:");
@@ -2240,9 +2254,13 @@ ui_start_menu(headers, items);
 					 "\nFormatting ext3 : ",
 					 "/sbin/partext4 reformatext3",
 				  	 "\nUnable to execute partext4!\n(%s)\n",
-				  	 "\nError : Run 'partext4 reformatext3' via adb!\n\n",
+				  	 "\nOops... something went wrong!\nPlease check the recovery log!\n\n",
 				  	 "\nExt3 re-format complete!\n\n",
 				  	 "\nExt3 re-format aborted!\n\n");
+				    */
+				check_fs_format("DATA:", "/data", 0, 1);
+				check_fs_format("SYSTEM:", "/system", 0, 1);
+				check_fs_format("CACHE:", "/cache", 0, 1);
 				} else {
 					 ui_print("\nReFormatting /data /system as ext3 aborted.\n\n");
 				}
@@ -2250,6 +2268,101 @@ ui_start_menu(headers, items);
 			
 				break;		
 
+		case ITEM_EXT4_SYSEXT3:
+			ui_clear_key_queue();
+			ui_print("\nReformat system to ext3?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.");
+			ui_print("\nThis erases system!!\n");
+			int confirm_sysformext3 = ui_wait_key();
+				if (confirm_sysformext3 == KEY_POWER) {
+				check_fs_format("SYSTEM:", "/system", 0, 1);
+				} else {
+					 ui_print("\nFormatting system as ext3 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_DATAEXT3:
+			ui_clear_key_queue();
+			ui_print("\nReformat data to ext3?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.");
+			ui_print("\nThis erases data!!\n");
+			int confirm_dataformext3 = ui_wait_key();
+				if (confirm_dataformext3 == KEY_POWER) {
+				check_fs_format("DATA:", "/data", 0, 1);
+				} else {
+					 ui_print("\nFormatting data as ext3 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_CACEXT3:
+			ui_clear_key_queue();
+			ui_print("\nReformat cache to ext3?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.");
+			ui_print("\nThis erases cache!!\n");
+			int confirm_cacformext3 = ui_wait_key();
+				if (confirm_cacformext3 == KEY_POWER) {
+				check_fs_format("CACHE:", "/cache", 0, 1);
+				} else {
+					 ui_print("\nFormatting cache as ext3 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_SYSEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade system to ext4?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_sysupgext4 = ui_wait_key();
+				if (confirm_sysupgext4 == KEY_POWER) {
+				check_fs_format("SYSTEM:", "/system", 1, 0);
+				} else {
+					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_DATAEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade data to ext4?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_dataupgext4 = ui_wait_key();
+				if (confirm_dataupgext4 == KEY_POWER) {
+				check_fs_format("DATA:", "/data", 1, 0);
+				} else {
+					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_CACEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade cache to ext4?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_cacupgext4 = ui_wait_key();
+				if (confirm_cacupgext4 == KEY_POWER) {
+				check_fs_format("CACHE:", "/cache", 1, 0);
+				} else {
+					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;		
 
 	        
             }
@@ -2350,6 +2463,142 @@ show_menu_usb()
 	 }	
 	}
 
+static void
+show_menu_developer()
+{
+
+    static char* headers[] = { "Choose Developer item,",
+			       "or press BACK to return",
+			       "",
+			       	NULL };
+
+// these constants correspond to elements of the items[] list.
+#define ITEM_DEV_EXIT 0
+#define ITEM_DEV_MKBOOT 1
+#define ITEM_DEV_SU 2
+#define ITEM_DEV_SU_ENG 3
+#define ITEM_DEV_EXT_TOGGLE 4
+#define ITEM_DEV_RB_BOOT 5
+#define ITEM_DEV_RB_REC 6
+
+    static char* items[] = { "- Return",
+			     "- Make and flash boot from zimage",
+			     "- Install su & superuser",
+			     "- Install eng (unguarded) su",
+			     "- Toggle full format ext3 ext4",
+			     "- Reboot to bootloader",
+			     "- Reboot recovery",
+                             	NULL };
+
+    ui_start_menu(headers, items);
+    int selected = 0;
+    int chosen_item = -1;
+
+    finish_recovery(NULL);
+    ui_reset_progress();
+    for (;;) {
+        int key = ui_wait_key();
+        int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
+        int visible = ui_text_visible();
+
+        if (key == KEY_BACK) {
+            break;
+        } else if ((key == KEY_VOLUMEDOWN) && visible) {
+            ++selected;
+            selected = ui_menu_select(selected);
+        } else if ((key == KEY_VOLUMEUP) && visible) {
+            --selected;
+            selected = ui_menu_select(selected);
+        } else if ((key == KEY_POWER) && visible ) {
+            chosen_item = selected;
+        }
+
+        if (chosen_item >= 0) {
+            // turn off the menu, letting ui_print() to scroll output
+            // on the screen.
+            ui_end_menu();
+
+            switch (chosen_item) {
+
+		case ITEM_DEV_EXIT:
+			return;		
+
+		case ITEM_DEV_EXT_TOGGLE:
+			toggle_full_ext_format();
+			break;
+		
+		case ITEM_DEV_MKBOOT:
+			ui_clear_key_queue();
+			ui_print("\nMake new boot from zImage?");
+			ui_print("\nMust be plugged into pc as");
+			ui_print("\nsdcard is ejected as mass storage");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_mkboot = ui_wait_key();
+				if (confirm_mkboot == KEY_POWER) {
+				do_make_new_boot();
+				} else {
+					 ui_print("\nAborted make new boot.\n\n");
+				}
+				if (!ui_text_visible()) return;  
+			
+			break;
+
+		case ITEM_DEV_SU:
+			ui_clear_key_queue();
+			ui_print("\nInstall or fix su & superuser?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_su_super = ui_wait_key();
+				if (confirm_su_super == KEY_POWER) {
+				install_su(0);
+				} else {
+					 ui_print("\nInstall of su & superuser aborted.\n\n");
+				}
+				if (!ui_text_visible()) return; 
+			
+			break;
+
+		case ITEM_DEV_SU_ENG:
+			ui_clear_key_queue();
+			ui_print("\nInstall eng (unguarded) su?");
+			ui_print("\nPress Power to confirm,");
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_su_eng = ui_wait_key();
+				if (confirm_su_eng == KEY_POWER) {
+				install_su(1);
+				} else {
+					 ui_print("\nInstall of su & superuser aborted.\n\n");
+				}
+				if (!ui_text_visible()) return; 
+			
+			break;
+
+		case ITEM_DEV_RB_REC:
+				rb_recovery();
+			break;
+
+		case ITEM_DEV_RB_BOOT:
+				rb_bootloader();
+
+			break;
+
+			}
+// if we didn't return from this function to reboot, show
+            // the menu again.
+            ui_start_menu(headers, items);
+            selected = 0;
+            chosen_item = -1;
+
+            finish_recovery(NULL);
+            ui_reset_progress();
+
+            // throw away keys pressed while the command was running,
+            // so user doesn't accidentally trigger menu items.
+            ui_clear_key_queue();
+	  }
+	 }	
+	}
 
 
 static void
@@ -2372,7 +2621,8 @@ prompt_and_wait()
 #define ITEM_MOUNT	       6
 #define ITEM_OTHER         7
 #define ITEM_EXT4DATA      8
-#define ITEM_POWEROFF      9
+#define ITEM_DEVELOPER	   9
+#define ITEM_POWEROFF      10
 
 
     static char* items[] = { "- Reboot system now",
@@ -2384,6 +2634,7 @@ prompt_and_wait()
                              "- Mounts",
 			     "- Other",
                              "- Format data,system,cache Ext4 | Ext3",
+			     "- Developer menu",
 			     "- Power off",
                              NULL };
 
@@ -2465,6 +2716,10 @@ prompt_and_wait()
 				   "\nOops... something went wrong!\nPlease check the recovery log!\n\n",
 				   "\nPower off complete!\n\n",
 				   "\nPower off aborted!\n\n");
+			break;
+
+		case ITEM_DEVELOPER:
+			show_menu_developer();
 			break;
 
           

@@ -60,4 +60,6 @@ const MtdPartition *get_root_mtd_partition(const char *root_path);
  */
 int format_root_device(const char *root);
 
+const char *
+get_root_device_info(const char *root, const char* req_info, char* ret_info);
 #endif  // RECOVERY_ROOTS_H_

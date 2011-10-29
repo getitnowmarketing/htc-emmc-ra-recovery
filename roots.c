@@ -385,6 +385,49 @@ format_root_device(const char *root)
             }
         }
     }
+	if (full_ext_format_enabled) {
+		if (!strcmp(info->filesystem, "auto") || !strcmp(info->filesystem, "ext3") || !strcmp(info->filesystem, "ext4")) {
+			if (!strcmp(info->mount_point, "/system") || !strcmp(info->mount_point, "/data") || !strcmp(info->mount_point, "/cache")) {
+				return check_fs_format(root, info->mount_point, 0, 0);
+		}
+	     }
+	}
     
     return format_non_mtd_device(root);
+}
+
+const char* get_root_device_info(const char *root, const char* req_info, char* ret_info)
+{
+
+const RootInfo *info = get_root_info_for_path(root);
+    if (info == NULL || info->device == NULL) {
+        LOGW("can't find \"%s\"\n", root);
+        return NULL;
+    }
+if (!strcmp(req_info, "device")) {
+strcpy(ret_info, info->device);
+return ret_info;
+}
+
+if (!strcmp(req_info, "name")) {
+strcpy(ret_info, info->name);
+return ret_info;
+}
+
+if (!strcmp(req_info, "partition_name")) {
+strcpy(ret_info, info->partition_name);
+return ret_info;
+}
+
+if (!strcmp(req_info, "mount_point")) {
+strcpy(ret_info, info->mount_point);
+return ret_info;
+}
+
+if (!strcmp(req_info, "filesystem")) {
+strcpy(ret_info, info->filesystem);
+return ret_info;
+}
+
+return NULL;
 }
