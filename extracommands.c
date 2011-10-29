@@ -48,6 +48,8 @@ To handle formatting non yaffs2 partitions like the ext3 /data & /cache on Incre
 
 #include <sys/limits.h>
 
+#include "recovery_ui_keys.h"
+
 //disable this, its optional
 int signature_check_enabled = 0;
 
@@ -79,7 +81,7 @@ void key_logger_test()
 		int key = ui_wait_key();
                 //int visible = ui_text_visible();
 
-		if (key == KEY_BACK) {
+		if (key == GO_BACK) {
                    break;
                
 		} else  {   
@@ -92,10 +94,10 @@ void run_script(char *str1,char *str2,char *str3,char *str4,char *str5,char *str
 {
 	ui_print(str1);
         ui_clear_key_queue();
-	ui_print("\nPress Power to confirm,");
+	ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
        	ui_print("\nany other key to abort.\n");
 	int confirm = ui_wait_key();
-		if (confirm == KEY_POWER) {
+		if (confirm == SELECT) {
                 	ui_print(str2);
 		        pid_t pid = fork();
                 	if (pid == 0) {
@@ -217,11 +219,11 @@ void usb_toggle_sdcard()
                 	} else {
                                 ui_clear_key_queue();
                 		ui_print("\nUSB-MS enabled!");
-				ui_print("\nPress Power to disable,");
+				ui_print("\nPress %s to disable,", confirm_key_hack(CONFIRM));
 				ui_print("\nand return to menu\n");
 		       		for (;;) {
         	                        	int key = ui_wait_key();
-						if (key == KEY_POWER) {
+						if (key == SELECT) {
 							ui_print("\nDisabling USB-MS : ");
 						        pid_t pid = fork();
 				                	if (pid == 0) {
