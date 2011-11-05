@@ -29,8 +29,17 @@
 
 #include <pixelflinger/pixelflinger.h>
 
+#ifdef BOARD_LDPI_RECOVERY
+#include "font_7x16.h"
+#else
 #include "font_10x18.h"
+#endif
+
 #include "minui.h"
+
+#ifdef THIRTYTWO_BIT_FB
+#include <cutils/memory.h>
+#endif
 
 typedef struct {
     GGLSurface texture;
@@ -85,18 +94,33 @@ static int get_framebuffer(GGLSurface *fb)
     fb->version = sizeof(*fb);
     fb->width = vi.xres;
     fb->height = vi.yres;
-    fb->stride = vi.xres;
+#ifdef THIRTYTWO_BIT_FB    
+	fb->stride = vi.xres_virtual;
+#else
+	fb->stride = vi.xres;
+#endif	
     fb->data = bits;
     fb->format = GGL_PIXEL_FORMAT_RGB_565;
+#ifdef THIRTYTWO_BIT_FB 
+	memset(fb->data, 0, vi.yres * vi.xres_virtual * vi.bits_per_pixel / 8);
+#endif
 
     fb++;
 
     fb->version = sizeof(*fb);
     fb->width = vi.xres;
     fb->height = vi.yres;
+#ifdef THIRTYTWO_BIT_FB
+	fb->stride = vi.xres_virtual;
+    fb->data = (void*) (((unsigned) bits) + (vi.yres * vi.xres_virtual * vi.bits_per_pixel / 8));
+#else
     fb->stride = vi.xres;
     fb->data = (void*) (((unsigned) bits) + vi.yres * vi.xres * 2);
+#endif
     fb->format = GGL_PIXEL_FORMAT_RGB_565;
+#ifdef THIRTYTWO_BIT_FB
+	memset(fb->data, 0, vi.yres * vi.xres_virtual * vi.bits_per_pixel / 8);
+#endif
 
     return fd;
 }
@@ -105,8 +129,13 @@ static void get_memory_surface(GGLSurface* ms) {
   ms->version = sizeof(*ms);
   ms->width = vi.xres;
   ms->height = vi.yres;
+#ifdef THIRTYTWO_BIT_FB
+  ms->stride = vi.xres_virtual;
+  ms->data = malloc(vi.xres_virtual * vi.yres * vi.bits_per_pixel / 8);
+#else
   ms->stride = vi.xres;
   ms->data = malloc(vi.xres * vi.yres * 2);
+#endif  
   ms->format = GGL_PIXEL_FORMAT_RGB_565;
 }
 
@@ -115,11 +144,38 @@ static void set_active_framebuffer(unsigned n)
     if (n > 1) return;
     vi.yres_virtual = vi.yres * 2;
     vi.yoffset = n * vi.yres;
+#ifndef THIRTYTWO_BIT_FB
     vi.bits_per_pixel = 16;
+#endif
     if (ioctl(gr_fb_fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
         perror("active fb swap failed");
     }
 }
+#ifdef THIRTYTWO_BIT_FB
+
+void gr_flip_32(unsigned *bits, unsigned short *ptr, unsigned count)
+{
+   unsigned i=0;
+   while (i<count) {
+        uint32_t rgb32, red, green, blue, alpha;
+
+        /* convert 16 bits to 32 bits */
+        rgb32 = ((ptr[i] >> 11) & 0x1F);
+        red = (rgb32 << 3) | (rgb32 >> 2);
+        rgb32 = ((ptr[i] >> 5) & 0x3F);
+        green = (rgb32 << 2) | (rgb32 >> 4);
+        rgb32 = ((ptr[i]) & 0x1F);
+        blue = (rgb32 << 3) | (rgb32 >> 2);
+        alpha = 0xff;
+        rgb32 = (alpha << 24) | (blue << 16)
+        | (green << 8) | (red);
+        android_memset32((uint32_t *)bits, rgb32, 4);
+        i++;
+        bits++;
+    }
+}
+
+#endif
 
 void gr_flip(void)
 {
@@ -130,9 +186,26 @@ void gr_flip(void)
 
     /* copy data from the in-memory surface to the buffer we're about
      * to make active. */
+
+#ifdef THIRTYTWO_BIT_FB
+
+if(vi.bits_per_pixel == 32)
+    {
+        gr_flip_32((unsigned *)gr_framebuffer[gr_active_fb].data, \
+                   (unsigned short *)gr_mem_surface.data,
+                   (vi.xres_virtual * vi.yres));
+    }
+    else
+    {
+        memcpy(gr_framebuffer[gr_active_fb].data, gr_mem_surface.data,
+               vi.xres_virtual * vi.yres *2);
+    }
+
+	
+#else
     memcpy(gr_framebuffer[gr_active_fb].data, gr_mem_surface.data,
            vi.xres * vi.yres * 2);
-
+#endif
     /* inform the display driver */
     set_active_framebuffer(gr_active_fb);
 }

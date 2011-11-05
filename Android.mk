@@ -29,6 +29,15 @@ LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 ifeq ($(TARGET_HAS_WIMAX),true)
 LOCAL_CFLAGS += -DHAS_WIMAX
 endif
+
+ifeq ($(BOARD_LDPI_RECOVERY),true)
+LOCAL_CFLAGS += -DBOARD_LDPI_RECOVERY
+endif
+
+ifeq ($(BOARD_USES_THIRTYTWO_BIT_FB),true)
+LOCAL_CFLAGS += -DTHIRTYTWO_BIT_FB
+endif 
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.
