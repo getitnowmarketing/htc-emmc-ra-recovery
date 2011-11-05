@@ -18,6 +18,7 @@
 # pensive added list updates (more precisely *.zip) anywhere on the sdcard
 # Amon_RA : ext restore -> added check if ext backup is existing
 # Amon_RA : ext restore -> added check if ext parition is existing
+# Amon_RA -> added wimax restore/backup
 # Getitnowmarketing added android_secure restore
 # Getitnowmarketing added Clockwork 4.0 & 5.0 Nandroid restore compatibility
 
@@ -90,6 +91,7 @@ NOSPLASH1=0
 NOSPLASH2=0
 EXT=0
 ANDROID_SECURE=0
+WIMAX=0
 
 COMPRESS=0
 GETUPDATE=0
@@ -109,6 +111,7 @@ DB="/dev/block/"
 RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
 BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
 MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
+WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
 YAFFSEXTASECURE=0
 CWMRESTORE=0
 CWMCOMPAT=0
@@ -159,19 +162,6 @@ echo2log()
     fi
 }
 
-batteryAtLeast()
-{
-                REQUIREDLEVEL=$1
-		ENERGY=`cat /sys/class/power_supply/battery/capacity`
-		if [ "`cat /sys/class/power_supply/battery/status`" == "Charging" ]; then
-			ENERGY=100
-		fi
-		if [ ! $ENERGY -ge $REQUIREDLEVEL ]; then
-			$ECHO "Error: not enough battery power, need at least $REQUIREDLEVEL%."
-			$ECHO "Connect charger or USB power and try again"
-			exit 1
-		fi
-}
 
 if [ "`echo $0 | grep /sbin/nandroid-mobile.sh`" == "" ]; then
     cp $0 /sbin
@@ -197,7 +187,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l nosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l wimax -lnosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -311,6 +301,8 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             $ECHO ""
             $ECHO "--nosplash2                Will suppress restore/backup of the splash2 partition"
             $ECHO ""
+            $ECHO "--wimax                  Will restore/backup of the wimax partition"
+            $ECHO ""
             $ECHO "--defaultinput             Makes nandroid-mobile non-interactive, assumes default"
             $ECHO "                           inputs from the user."
             $ECHO ""
@@ -381,6 +373,11 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
         --nosplash2)
             NOSPLASH2=1
             #$ECHO "No splash2"
+            shift
+            ;;
+        --wimax)
+            WIMAX=1
+            #$ECHO "wimax"
             shift
             ;;
         --backup)
@@ -772,17 +769,6 @@ fi
 
 
 if [ "$RESTORE" == 1 ]; then
-                batteryAtLeast 20
-#		ENERGY=`cat /sys/class/power_supply/battery/capacity`
-#		if [ "`cat /sys/class/power_supply/battery/status`" == "Charging" ]; then
-#			ENERGY=100
-#		fi
-#		if [ ! $ENERGY -ge 30 ]; then
-#			$ECHO "Error: not enough battery power"
-#			$ECHO "Connect charger or USB power and try again"
-#			exit 1
-#		fi
-
 
                 umount /sdcard 2>/dev/null
 		mount /sdcard 2>/dev/null
@@ -923,15 +909,15 @@ if [ "$RESTORE" == 1 ]; then
 		# Clockwork Restore Detection GNM
 		if [ `ls system.*.tar 2>/dev/null | wc -l` != 0 ]; then
                     echo "Clockwork 5.0 system.*.tar detected"
-		    CWMRESTORE=1
+		    #CWMRESTORE=1
                 fi
 		if [ `ls data.*.tar 2>/dev/null | wc -l` != 0 ]; then
                     echo "Clockwork 5.0 data.*.tar detected"
-		    CWMRESTORE=1
+		    #CWMRESTORE=1
                 fi
 		if [ `ls cache.*.tar 2>/dev/null | wc -l` != 0 ]; then
                     echo "Clockwork 5.0 cache.*.tar detected"
-		    CWMRESTORE=1
+		    #CWMRESTORE=1
                 fi
 
 		# Amon_RA : If there's no ext backup set ext to 0 so ext restore doesn't start                
@@ -970,8 +956,13 @@ if [ "$RESTORE" == 1 ]; then
 		fi
 		
 
+				# Amon_RA : If there's no wimax backup set nowimax to 1 so wimax restore doesn't start                
+                if [ `ls wimax* 2>/dev/null | wc -l` == 0 ]; then
+                    WIMAX=0
+				
+                fi
 
-		for image in boot recovery; do
+		for image in boot recovery wimax; do
                     if [ "$NOBOOT" == "1" -a "$image" == "boot" ]; then
                         $ECHO ""
                         $ECHO "Not flashing boot image!"
@@ -984,14 +975,26 @@ if [ "$RESTORE" == 1 ]; then
                         $ECHO ""
                         continue
                     fi
+					if [ "$WIMAX" == "0" -a "$image" == "wimax" ]; then
+                        $ECHO ""
+                        $ECHO "Not flashing wimax image!"
+                        $ECHO ""
+                        continue
+                    fi
+					
                     $ECHO "Flashing $image..."
 		    if [ $image = "boot" ]; then
 			DEVICEBLK=$DB$BOOTBLK
-		    else
-	    		if [ $image = "recovery" ]; then
+		    	fi
+			
+	    	if [ $image = "recovery" ]; then
 			DEVICEBLK=$DB$RECBLK
-		  	fi
-	    	    fi				
+		  		fi
+			
+			if [ $image = "wimax" ]; then
+			DEVICEBLK=$DB$WIMAXBLK
+		  		fi	
+	    	    			
 			# zeroing the boot & recovery prior to flashing
 			#dd if=/dev/zero of=/$DEVICEBLK
 			#echo "Zeroing $DEVICEBLK"
@@ -1021,10 +1024,14 @@ if [ "$RESTORE" == 1 ]; then
 			cd /$image
 			rm -rf * 2>/dev/null
 			
-			if [ "$CWMRESTORE" == "1" ];then
+			if [ -e $RESTOREPATH/$image.*.tar ]; then
 				cd /
 				$ECHO "Unpacking Clockwork $image image..."
 				tar -xf $RESTOREPATH/$image.*.tar
+			elif [ -e $RESTOREPATH/$image.yaffs2.img ]; then
+					$ECHO "Unpacking Clockwork 5 yaffs2 $image image..."
+		        	$unyaffs $RESTOREPATH/$image.yaffs2.img $OUTPUT
+					cd /
 			else	
 				$ECHO "Unpacking $image image..."
 		        	$unyaffs $RESTOREPATH/$image.img $OUTPUT
@@ -1146,19 +1153,6 @@ fi
 # 2.
 if [ "$BACKUP" == 1 ]; then
 
-    if [ "$COMPRESS" == 1 ]; then
-        ENERGY=`cat /sys/class/power_supply/battery/capacity`
-        if [ "`cat /sys/class/power_supply/battery/status`" == "Charging" ]; then
-            ENERGY=100
-        fi
-        if [ ! $ENERGY -ge 30 ]; then
-            $ECHO "Warning: Not enough battery power to perform compression."
-            COMPRESS=0
-            $ECHO "Turning off compression option, you can compress the backup later"
-            $ECHO "with the compression options."
-        fi
-    fi
-
 $ECHO "mounting system and data read-only, sdcard read-write"
 umount /system 2>/dev/null
 umount /data 2>/dev/null
@@ -1212,6 +1206,10 @@ if [ "$NOSPLASH1" == 0 ]; then
 fi
 if [ "$NOSPLASH2" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"2"
+fi
+
+if [ "$WIMAX" == 1 ]; then
+    BACKUPLEGEND=$BACKUPLEGEND"W"
 fi
 
 if [ ! "$BACKUPLEGEND" == "" ]; then
@@ -1276,7 +1274,7 @@ fi
 
 
 # 5.
-for image in boot recovery misc; do
+for image in boot recovery misc wimax; do
 
     case $image in
         boot)
@@ -1297,23 +1295,33 @@ for image in boot recovery misc; do
                 continue
             fi
             ;;
+        wimax)
+            if [ "$WIMAX" == 0 ]; then
+                $ECHO "Dump of the wimax partition suppressed."
+                continue
+            fi
+            ;;
+
     esac
 
 	# 5a
 	if [ $image = "boot" ]; then
 	    echo "boot found on $DB$BOOTBLK"
 	    DEVICEBLK=$DB$BOOTBLK
-	else
-	    if [ $image = "misc"]; then
-	        echo "misc found on $DB$MISCBLK"
+	fi
+	    
+	if [ $image = "misc"]; then
+		echo "misc found on $DB$MISCBLK"
 		DEVICEBLK=$DB$MISCBLK
-		else
-		  if [ $image = "recovery" ]; then
-			echo "recovery found on $DB$RECBLK"
-			DEVICEBLK=$DB$RECBLK
-	    fi		
-	  	  fi			
-	fi	
+	fi
+		  
+	if [ $image = "wimax" ]; then
+	     echo "wimax found on $DB$RECBLK"
+		 DEVICEBLK=$DB$WIMAXBLK
+	fi
+			
+	  	  			
+	
 	DEVICEMD5=`md5sum $DEVICEBLK | awk '{ print $1 }'`
 	sleep 1s
 	MD5RESULT=1
@@ -1386,7 +1394,7 @@ if [ "$EXT" == 1 ]; then
     CHECK=`mount | grep /sd-ext`
     if [ "$CHECK" == "" ]; then
           $ECHO "Warning: --ext specified but unable to mount the ext partition."
-          exit 1
+          $ECHO "Skipping /sd-ext backup."
     else
         
         CWD=`pwd`

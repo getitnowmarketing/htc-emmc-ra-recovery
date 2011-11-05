@@ -94,7 +94,7 @@ void run_script(char *str1,char *str2,char *str3,char *str4,char *str5,char *str
 {
 	ui_print(str1);
         ui_clear_key_queue();
-	ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+	ui_print("\nPress %s to confirm,", CONFIRM);
        	ui_print("\nany other key to abort.\n");
 	int confirm = ui_wait_key();
 		if (confirm == SELECT) {
@@ -219,7 +219,7 @@ void usb_toggle_sdcard()
                 	} else {
                                 ui_clear_key_queue();
                 		ui_print("\nUSB-MS enabled!");
-				ui_print("\nPress %s to disable,", confirm_key_hack(CONFIRM));
+				ui_print("\nPress %s to disable,", CONFIRM);
 				ui_print("\nand return to menu\n");
 		       		for (;;) {
         	                        	int key = ui_wait_key();
@@ -248,58 +248,7 @@ void usb_toggle_sdcard()
 				} 
                 	}
 		}	
-/*              
-void usb_toggle_emmc()
-{
-		ui_print("\nEnabling USB-MS : ");
-		        pid_t pid1 = fork();
-                	if (pid1 == 0) {
-                		char *args[] = { "/sbin/sh", "-c", "/sbin/ums_emmc_toggle on", "1>&2", NULL };
-                	        execv("/sbin/sh", args);
-                	        fprintf(stderr, "\nUnable to enable USB-MS!\n(%s)\n", strerror(errno));
-                	        _exit(-1);
-                	}
-			int status1;
-			while (waitpid(pid1, &status1, WNOHANG) == 0) {
-				ui_print(".");
-               		        sleep(1);
-			}
-                	ui_print("\n");
-			if (!WIFEXITED(status1) || (WEXITSTATUS(status1) != 0)) {
-                		ui_print("\nError : Run 'ums_emmc_toggle' via adb!\n\n");
-                	} else {
-                                ui_clear_key_queue();
-                		ui_print("\nUSB-MS enabled!");
-				ui_print("\nPress Trackball to disable,");
-				ui_print("\nand return to menu\n");
-		       		for (;;) {
-        	                        	int key = ui_wait_key();
-						if (key == BTN_MOUSE) {
-							ui_print("\nDisabling USB-MS : ");
-						        pid_t pid1 = fork();
-				                	if (pid1 == 0) {
-				                		char *args[] = { "/sbin/sh", "-c", "/sbin/ums_emmc_toggle off", "1>&2", NULL };
-                					        execv("/sbin/sh", args);
-				                	        fprintf(stderr, "\nUnable to disable USB-MS!\n(%s)\n", strerror(errno));
-				                	        _exit(-1);
-				                	}
-							int status1;
-							while (waitpid(pid1, &status1, WNOHANG) == 0) {
-								ui_print(".");
-				               		        sleep(1);
-							}
-				                	ui_print("\n");
-							if (!WIFEXITED(status1) || (WEXITSTATUS(status1) != 0)) {
-				                		ui_print("\nError : Run 'ums_emmc_toggle' via adb!\n\n");
-				                	} else {
-				                		ui_print("\nUSB-MS disabled!\n\n");
-							}	
-							break;
-					        }
-				} 
-             }
-   }	
-*/
+
 void wipe_battery_stats()
 {
     ensure_root_path_mounted("DATA:");
@@ -667,6 +616,7 @@ delete_file("/tmp/mkboot");
 
 void install_su(int eng_su)
 {
+ui_print("Working ......\n");
 ensure_root_path_mounted("SYSTEM:");
 ensure_root_path_mounted("DATA:");
 ensure_root_path_mounted("CACHE:");
@@ -695,7 +645,7 @@ if ((0 == (check_file_exists("/system/bin/su"))) || (0 == (check_file_exists("/s
 	ui_print("Removing old su\n");
 }
 delete_file("/system/bin/su");
-delete_file("/system/xbin/su");
+__system("rm /system/xbin/su");
 if (!eng_su) {
 	copy_file("/extra/su", "/system/bin/su");
 	copy_file("/extra/Superuser.apk", "/system/app/Superuser.apk");

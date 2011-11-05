@@ -311,7 +311,7 @@ static void
 choose_nandroid_file(const char *nandroid_folder)
 {
     static char* headers[] = { "Choose nandroid-backup,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
                                "",
                                NULL };
 
@@ -435,13 +435,13 @@ choose_nandroid_file(const char *nandroid_folder)
             ui_print("\nRestore ");
             ui_print(list[chosen_item]);
             ui_clear_key_queue();
-            ui_print(" ?\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+            ui_print(" ?\nPress %s to confirm,", CONFIRM);
             ui_print("\nany other key to abort.\n");
             int confirm_apply = ui_wait_key();
             if (confirm_apply == SELECT) {
                       
                             ui_print("\nRestoring : ");
-       		            char nandroid_command[200]="/sbin/nandroid-mobile.sh -r -e -a --norecovery --nomisc --nosplash1 --nosplash2 --defaultinput -s ";
+       		            char nandroid_command[200]="/sbin/nandroid-mobile.sh -r -e -a --norecovery --wimax --nomisc --nosplash1 --nosplash2 --defaultinput -s ";
 
 			    strlcat(nandroid_command, list[chosen_item], sizeof(nandroid_command));
 
@@ -490,7 +490,7 @@ static void
 choose_clockwork_file()
 {
     static char* headers[] = { "Choose clockworkmod nandroid-backup,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
                                "",
                                NULL };
 
@@ -615,8 +615,11 @@ choose_clockwork_file()
             ui_print("\nRestore Clockwork Backup ");
             ui_print(list[chosen_item]);
             ui_clear_key_queue();
-            ui_print(" ?\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+            ui_print(" ?\nPress %s to confirm,", CONFIRM);
             ui_print("\nany other key to abort.\n");
+#ifdef HAS_WIMAX
+	    ui_print("\nThis will not restore wimax backup!!\n");
+#endif
             int confirm_apply = ui_wait_key();
             if (confirm_apply == SELECT) {
                       
@@ -671,7 +674,7 @@ static void
 choose_nandroid_folder()
 {
     static char* headers[] = { "Choose Device-ID,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
                                "",
                                NULL };
 
@@ -1038,6 +1041,9 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
+#ifdef HAS_WIMAX		
+				"- [ ] wimax",
+#endif
 				"- Perform Backup",
 				"- Return",
 		NULL};
@@ -1050,6 +1056,9 @@ show_menu_nandroid()
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
+#ifdef HAS_WIMAX		
+				"- [X] wimax",
+#endif
 				"- Perform Backup",
 				"- Return",
 		NULL};
@@ -1062,6 +1071,9 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
+#ifdef HAS_WIMAX		
+				"- [ ] wimax",
+#endif
 				"- Perform Backup",
 				"- Return",
                	NULL};
@@ -1094,17 +1106,24 @@ show_menu_nandroid()
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
-
+#ifdef HAS_WIMAX
+			if (chosen_item < 8) {
+#else
             if (chosen_item < 7) {
+#endif
 		   // Rebuild items
 		   if (items[chosen_item]==items_in[chosen_item]) {
 	               items[chosen_item]=items_out[chosen_item];
 	           } else {
 	               items[chosen_item]=items_in[chosen_item];
 	           }
-
+#ifdef HAS_WIMAX
+			} else if (chosen_item == 9) {
+		return; 
+#else
             } else if (chosen_item == 8) {
 		return; 
+#endif
 
 		} else {
 
@@ -1123,6 +1142,9 @@ show_menu_nandroid()
 				if (strcmp( items[i], "- [ ] data") == 0) strcat(nandroid_command, " --nodata");
 				if (strcmp( items[i], "- [ ] system") == 0) strcat(nandroid_command, " --nosystem");
 				if (strcmp( items[i], "- [ ] cache") == 0) strcat(nandroid_command, " --nocache");
+#ifdef HAS_WIMAX		
+				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
+#endif
                 	        
 		i++;	
 		}
@@ -1161,7 +1183,7 @@ void show_choose_zip_menu()
     }
 
     static char* headers[] = {  "Choose a zip to apply",
-			        "or press BACK to return",
+			        UNCONFIRM_TXT,
                                 "",
                                 NULL 
     };
@@ -1180,7 +1202,7 @@ void show_choose_zip_menu()
     ui_print("\nInstall : ");
     ui_print(file + strlen("/sdcard/"));
     ui_clear_key_queue();
-    ui_print(" ? \nPress %s to confirm,", confirm_key_hack(CONFIRM));
+    ui_print(" ? \nPress %s to confirm,", CONFIRM);
     ui_print("\nany other key to abort.\n");
 
     int confirm_apply = ui_wait_key();
@@ -1204,66 +1226,13 @@ void show_choose_zip_menu()
 
 }
 
-/*
-void show_choose_zip_menu_emmc()
-{
-    if (ensure_root_path_mounted("EMMC:") != 0) {
-        LOGE ("Can't mount /emmc\n");
-        return;
-    }
-
-    static char* headers[] = {  "Choose a zip to apply",
-			        "or press VOL-DOWN to return",
-                                "",
-                                NULL 
-    };
-    
-    char* file = choose_file_menu("/emmc/", ".zip", headers);
-
-    if (file == NULL)
-        return;
-
-    char emmc_package_file[1024];
-    strcpy(emmc_package_file, "EMMC:");
-    strcat(emmc_package_file,  file + strlen("/emmc/"));
-
-    ui_end_menu();
-
-    ui_print("\nInstall : ");
-    ui_print(file + strlen("/emmc/"));
-    ui_clear_key_queue();
-    ui_print(" ? \nPress Trackball to confirm,");
-    ui_print("\nany other key to abort.\n");
-
-    int confirm_apply = ui_wait_key();
-    if (confirm_apply == BTN_MOUSE) {
-    	ui_print("\nInstall from emmc...\n");
-        int status = install_package(emmc_package_file);
-	        if (status != INSTALL_SUCCESS) {
-                    ui_set_background(BACKGROUND_ICON_ERROR);
-                    ui_print("\nInstallation aborted.\n");
-                } else {
-                    if (firmware_update_pending()) {
-                        ui_print("\nReboot via vol-up+vol-down or menu\n"
-                                 "to complete installation.\n");
-                    } else {
-                        ui_print("\nInstall from emmc complete.\n");
-                    }
-                }
-    } else {
-        ui_print("\nInstallation aborted.\n");
-    }
-
-}
-
-*/
 
 static void
 show_menu_wipe()
 {
 
     static char* headers[] = { "Choose wipe item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 
@@ -1330,7 +1299,7 @@ show_menu_wipe()
 		case ITEM_WIPE_ALL:
                     ui_clear_key_queue();
 		    ui_print("\nWipe ALL userdata");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_all = ui_wait_key();
                     if (confirm_wipe_all == SELECT) {
@@ -1356,7 +1325,7 @@ show_menu_wipe()
                 case ITEM_WIPE_DATA:
                     ui_clear_key_queue();
 		    ui_print("\nWipe /data");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_data = ui_wait_key();
                     if (confirm_wipe_data == SELECT) {
@@ -1371,7 +1340,7 @@ show_menu_wipe()
                 case ITEM_WIPE_EXT:
                     ui_clear_key_queue();
 		    ui_print("\nWipe /sd-ext");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_ext = ui_wait_key();
                     if (confirm_wipe_ext == SELECT) {
@@ -1393,7 +1362,7 @@ show_menu_wipe()
                 case ITEM_WIPE_SECURE:
                     ui_clear_key_queue();
 		    ui_print("\nWipe /sdcard/.android_secure");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_secure = ui_wait_key();
                     if (confirm_wipe_secure == SELECT) {
@@ -1408,7 +1377,7 @@ show_menu_wipe()
                 case ITEM_WIPE_CACHE:
                     ui_clear_key_queue();
 		    ui_print("\nWipe /cache");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_cache = ui_wait_key();
                     if (confirm_wipe_cache == SELECT) {
@@ -1423,7 +1392,7 @@ show_menu_wipe()
                 case ITEM_WIPE_DALVIK:
                     ui_clear_key_queue();
 		    ui_print("\nWipe Dalvik-cache");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_dalvik = ui_wait_key();
                     if (confirm_wipe_dalvik == SELECT) {
@@ -1450,7 +1419,7 @@ show_menu_wipe()
 		case ITEM_WIPE_BAT:
                     ui_clear_key_queue();
 		    ui_print("\nWipe battery stats");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_bat = ui_wait_key();
                     if (confirm_wipe_bat == SELECT) {
@@ -1467,7 +1436,7 @@ show_menu_wipe()
 		case ITEM_WIPE_ROT:
 		    ui_clear_key_queue();
 		    ui_print("\nWipe rotate settings");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_rot = ui_wait_key();
                     if (confirm_wipe_rot == SELECT) {
@@ -1484,7 +1453,7 @@ show_menu_wipe()
                     ui_clear_key_queue();
 		    ui_print("\nWipe Sdcard");
                     ui_print("\nThis is Irreversible!!!\n");
-		    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+		    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_mysd = ui_wait_key();
                     if (confirm_wipe_mysd == SELECT) {
@@ -1499,7 +1468,7 @@ show_menu_wipe()
 		case ITEM_WIPE_SYSTEM:
                     ui_clear_key_queue();
 		    ui_print("\nWipe /system");
-                    ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+                    ui_print("\nPress %s to confirm,", CONFIRM);
                     ui_print("\nany other key to abort.\n\n");
                     int confirm_wipe_mysys = ui_wait_key();
                     if (confirm_wipe_mysys == SELECT) {
@@ -1533,7 +1502,7 @@ show_menu_br()
 {
 
     static char* headers[] = { "Choose backup/restore item;",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 
@@ -1654,7 +1623,7 @@ show_menu_partition()
 {
 
     static char* headers[] = { "Choose partition item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 
@@ -1708,14 +1677,14 @@ show_menu_partition()
 		case ITEM_PART_SD:
                         ui_clear_key_queue();
 			ui_print("\nPartition sdcard?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.");
 			int confirm = ui_wait_key();
 				if (confirm == SELECT) {
 	                                ui_clear_key_queue();
-				       	ui_print("\n\nUse Vol Up/Down");
+				       	ui_print("\n\nUse %s", UPDOWNTXT);
 				       	ui_print("\nto increase/decrease size,");
-				       	ui_print("\n%s to set (0=NONE) :\n\n", confirm_key_hack(CONFIRM));
+				       	ui_print("\n%s to set (0=NONE) :\n\n", CONFIRM);
 					char swapsize[32];
 					int swap = 32;
 					for (;;) {
@@ -1831,7 +1800,7 @@ show_menu_other()
 {
 
     static char* headers[] = { "Choose item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 
@@ -1934,7 +1903,7 @@ show_menu_flash()
 {
 
     static char* headers[] = { "Choose item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 
@@ -2070,7 +2039,7 @@ static void
 show_menu_mount()
 {
    static char* headers[] = { "Choose mount item,",
-			       "or press Back to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       NULL };
 				   
@@ -2127,7 +2096,7 @@ show_menu_ext4_data()
 {
 
     static char* headers[] = { "Choose  item,",
-			       "or press Back to return",
+			       UNCONFIRM_TXT,
 				   "",
 			       NULL };
 
@@ -2205,7 +2174,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
 			ui_print("\nUpgrade /data /system /cache to ext4?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n");
 			
 			int confirm_formext4 = ui_wait_key();
@@ -2237,7 +2206,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_FORMEXT3:
                         ui_clear_key_queue();
 			ui_print("\nReformat /data, /cache & /system to ext3?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.");
 			ui_print("\nThis wipes /data, /cache & /system!!\n");
 			ui_print("\nYou will need to flash a rom,");
@@ -2272,7 +2241,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_SYSEXT3:
 			ui_clear_key_queue();
 			ui_print("\nReformat system to ext3?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.");
 			ui_print("\nThis erases system!!\n");
 			int confirm_sysformext3 = ui_wait_key();
@@ -2288,7 +2257,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_DATAEXT3:
 			ui_clear_key_queue();
 			ui_print("\nReformat data to ext3?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.");
 			ui_print("\nThis erases data!!\n");
 			int confirm_dataformext3 = ui_wait_key();
@@ -2304,7 +2273,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_CACEXT3:
 			ui_clear_key_queue();
 			ui_print("\nReformat cache to ext3?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.");
 			ui_print("\nThis erases cache!!\n");
 			int confirm_cacformext3 = ui_wait_key();
@@ -2320,7 +2289,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_SYSEXT4:
 			ui_clear_key_queue();
 			ui_print("\nUpgrade system to ext4?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n");
 			ui_print("\n");
 			int confirm_sysupgext4 = ui_wait_key();
@@ -2336,7 +2305,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_DATAEXT4:
 			ui_clear_key_queue();
 			ui_print("\nUpgrade data to ext4?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n");
 			ui_print("\n");
 			int confirm_dataupgext4 = ui_wait_key();
@@ -2352,7 +2321,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_CACEXT4:
 			ui_clear_key_queue();
 			ui_print("\nUpgrade cache to ext4?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n");
 			ui_print("\n");
 			int confirm_cacupgext4 = ui_wait_key();
@@ -2390,7 +2359,7 @@ show_menu_usb()
 {
 
     static char* headers[] = { "Choose item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       	NULL };
 
@@ -2469,7 +2438,7 @@ show_menu_developer()
 {
 
     static char* headers[] = { "Choose Developer item,",
-			       "or press BACK to return",
+			       UNCONFIRM_TXT,
 			       "",
 			       	NULL };
 
@@ -2533,7 +2502,7 @@ show_menu_developer()
 			ui_print("\nMake new boot from zImage?");
 			ui_print("\nMust be plugged into pc as");
 			ui_print("\nsdcard is ejected as mass storage");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n\n");
 			int confirm_mkboot = ui_wait_key();
 				if (confirm_mkboot == SELECT) {
@@ -2548,7 +2517,7 @@ show_menu_developer()
 		case ITEM_DEV_SU:
 			ui_clear_key_queue();
 			ui_print("\nInstall or fix su & superuser?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n\n");
 			int confirm_su_super = ui_wait_key();
 				if (confirm_su_super == SELECT) {
@@ -2563,13 +2532,13 @@ show_menu_developer()
 		case ITEM_DEV_SU_ENG:
 			ui_clear_key_queue();
 			ui_print("\nInstall eng (unguarded) su?");
-			ui_print("\nPress %s to confirm,", confirm_key_hack(CONFIRM));
+			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n\n");
 			int confirm_su_eng = ui_wait_key();
 				if (confirm_su_eng == SELECT) {
 				install_su(1);
 				} else {
-					 ui_print("\nInstall of su & superuser aborted.\n\n");
+					 ui_print("\nInstall of su aborted.\n\n");
 				}
 				if (!ui_text_visible()) return; 
 			
@@ -2654,8 +2623,8 @@ prompt_and_wait()
         if (key == DN && ui_key_pressed(SELECT)) {
             // Wait for the keys to be released, to avoid triggering
             // special boot modes (like coming back into recovery!).
-            while (ui_key_pressed(SELECT)) { //||
-                   //ui_key_pressed(DN)) {
+            while (ui_key_pressed(SELECT) ||
+                   ui_key_pressed(DN)) {
                 usleep(1000);
             }
             chosen_item = ITEM_REBOOT;

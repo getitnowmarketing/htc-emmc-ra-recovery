@@ -26,6 +26,9 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
 
+ifeq ($(TARGET_HAS_WIMAX),true)
+LOCAL_CFLAGS += -DHAS_WIMAX
+endif
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.
