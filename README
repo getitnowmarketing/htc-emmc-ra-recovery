@@ -1,1 +1,19 @@
-Must be compiled in cupcake 
+Updated code so this can be compiled in froyo sources now and recovery binary can be compiled for arch. Can also be compiled in gingerbread with small changed to makefiles. 10/31/2011 getitnowmarketing
+
+example boardconfig.mk
+
+TARGET_GLOBAL_CFLAGS += -mfpu=neon -mfloat-abi=softfp
+TARGET_GLOBAL_CPPFLAGS += -mfpu=neon -mfloat-abi=softfp
+TARGET_CPU_ABI  := armeabi-v7a
+TARGET_CPU_ABI2 := armeabi
+TARGET_ARCH_VARIANT := armv7-a-neon
+ARCH_ARM_HAVE_TLS_REGISTER := true
+
+# see android.mk for these
+#TARGET_HAS_WIMAX := true
+#TARGET_HAS_INTERNAL_SD := true
+#BOARD_USES_THIRTYTWO_BIT_FB := true
+#PARTITION_LAYOUT := PARTITION_LAYOUT_VIGOR
+
+
+TARGET_BOOTLOADER_BOARD_NAME := armv7neon
