@@ -15,7 +15,11 @@ case $1 in
 	sync
 	echo "" > /sys/devices/platform/usb_mass_storage/lun0/file
 	echo "USB Mass Storage disabled"
-        ;;
+	;;
+    internal)
+	echo /dev/block/mmcblk0p37 > /sys/devices/platform/usb_mass_storage/lun0/file
+	echo "Internal USB Mass Storage enabled"
+	;;
     --)
         ;;
 esac
