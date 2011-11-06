@@ -1226,6 +1226,58 @@ void show_choose_zip_menu()
 
 }
 
+#ifdef HAS_INTERNAL_SD
+void show_choose_zip_menu_internal()
+{
+    if (ensure_root_path_mounted("INTERNALSD:") != 0) {
+        LOGE ("Can't mount /internal_sdcard\n");
+        return;
+    }
+
+    static char* headers[] = {  "Choose a zip to apply",
+			        UNCONFIRM_TXT,
+                                "",
+                                NULL 
+    };
+    
+    char* file = choose_file_menu("/internal_sdcard/", ".zip", headers);
+
+    if (file == NULL)
+        return;
+
+    char emmc_package_file[1024];
+    strcpy(emmc_package_file, "INTERNALSD:");
+    strcat(emmc_package_file,  file + strlen("/internal_sdcard/"));
+
+    ui_end_menu();
+
+    ui_print("\nInstall : ");
+    ui_print(file + strlen("/internal_sdcard/"));
+    ui_clear_key_queue();
+    ui_print(" ? \nPress %s to confirm,", CONFIRM);
+    ui_print("\nany other key to abort.\n");
+
+    int confirm_apply = ui_wait_key();
+    if (confirm_apply == SELECT) {
+    	ui_print("\nInstall from internal_sdcard...\n");
+        int status = install_package(emmc_package_file);
+	        if (status != INSTALL_SUCCESS) {
+                    ui_set_background(BACKGROUND_ICON_ERROR);
+                    ui_print("\nInstallation aborted.\n");
+                } else {
+                    if (firmware_update_pending()) {
+                        ui_print("\nReboot via vol-up+vol-down or menu\n"
+                                 "to complete installation.\n");
+                    } else {
+                        ui_print("\nInstall from emmc complete.\n");
+                    }
+                }
+    } else {
+        ui_print("\nInstallation aborted.\n");
+    }
+
+}
+#endif
 
 static void
 show_menu_wipe()
@@ -1249,6 +1301,9 @@ show_menu_wipe()
 #define ITEM_WIPE_BAT      8
 #define ITEM_WIPE_ROT      9
 #define ITEM_WIPE_SDCARD   10
+#ifdef HAS_INTERNAL_SD
+#define ITEM_WIPE_INTERNAL 11
+#endif
 
     static char* items[] = { "- Return",
 			     "- Wipe ALL data/factory reset",
@@ -1261,6 +1316,9 @@ show_menu_wipe()
                              "- Wipe battery stats",
                              "- Wipe rotate settings",
 			     "- Wipe Sdcard",
+#ifdef HAS_INTERNAL_SD
+			     "- Wipe Internal_sd",
+#endif
                              NULL };
 
     ui_start_menu(headers, items);
@@ -1479,6 +1537,25 @@ show_menu_wipe()
                     }
                     if (!ui_text_visible()) return;
                     break;
+
+#ifdef HAS_INTERNAL_SD
+		case ITEM_WIPE_INTERNAL:
+                    ui_clear_key_queue();
+		    ui_print("\nWipe Internal_sd");
+                    ui_print("\nThis is Irreversible!!!\n");
+                    ui_print("\nPress %s to confirm,", CONFIRM);
+                    ui_print("\nany other key to abort.\n\n");
+                    int confirm_wipe_internal = ui_wait_key();
+                    if (confirm_wipe_internal == SELECT) {
+                        erase_root("INTERNALSD:");
+                        ui_print("/Internal_sd wipe complete!\n\n");
+                    } else {
+                        ui_print("/Internal_sd wipe aborted!\n\n");
+                    }
+                    if (!ui_text_visible()) return;
+                    break;
+#endif
+
             }
 
             // if we didn't return from this function to reboot, show
@@ -1910,13 +1987,16 @@ show_menu_flash()
 // these constants correspond to elements of the items[] list.
 #define ITEM_FLASH_EXIT 0
 #define ITEM_FLASHZIP 1
-//#define ITEM_FLASH_EMMC  1
 #define ITEM_FLASH_TOGGLE 2
-
+#ifdef HAS_INTERNAL_SD
+#define ITEM_FLASH_INTERNAL  3
+#endif
     static char* items[] = { "- Return",
 			     "- Choose zip from sdcard",
-                             //"- Choose zip from emmc",
-			     "- Toggle signature verification",
+                             "- Toggle signature verification",
+#ifdef HAS_INTERNAL_SD
+			     "- Choose zip from internal_sd",
+#endif
 				NULL };
 
     ui_start_menu(headers, items);
@@ -1956,11 +2036,12 @@ show_menu_flash()
         	        show_choose_zip_menu();
         	        break;
 		
-		/*
-		case ITEM_FLASH_EMMC:
-			show_choose_zip_menu_emmc();
+#ifdef HAS_INTERNAL_SD		
+		case ITEM_FLASH_INTERNAL:
+			show_choose_zip_menu_internal();
         	        break;
-		*/
+#endif
+		
 		case ITEM_FLASH_TOGGLE:
       			toggle_signature_check();
 			break;   
@@ -2366,12 +2447,15 @@ show_menu_usb()
 // these constants correspond to elements of the items[] list.
 #define ITEM_USB_EXIT 0
 #define ITEM_USB_SD 1
-//#define ITEM_USB_EMMC  1
-
+#ifdef HAS_INTERNAL_SD
+#define ITEM_USB_INTERNAL  2
+#endif
 
     static char* items[] = { "- Return",
 			     "- USB-MS Toggle SDCard",
-	//		     "- USB-MS Toggle PhoneStorage",
+#ifdef HAS_INTERNAL_SD
+			     "- USB-MS Toggle Internal_sd",
+#endif
                              	NULL };
 
     ui_start_menu(headers, items);
@@ -2411,11 +2495,11 @@ show_menu_usb()
 			usb_toggle_sdcard();
 			break;
 		
-/*
-		case ITEM_USB_EMMC:
-			usb_toggle_emmc();
+#ifdef HAS_INTERNAL_SD
+		case ITEM_USB_INTERNAL:
+			usb_toggle_internal();
 			break;
-*/	
+#endif	
 			}
 // if we didn't return from this function to reboot, show
             // the menu again.

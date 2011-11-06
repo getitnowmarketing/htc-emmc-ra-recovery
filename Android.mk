@@ -30,13 +30,16 @@ ifeq ($(TARGET_HAS_WIMAX),true)
 LOCAL_CFLAGS += -DHAS_WIMAX
 endif
 
-ifeq ($(BOARD_LDPI_RECOVERY),true)
-LOCAL_CFLAGS += -DBOARD_LDPI_RECOVERY
+ifeq ($(TARGET_HAS_INTERNAL_SD),true)
+LOCAL_CFLAGS += -DHAS_INTERNAL_SD
 endif
 
-ifeq ($(BOARD_USES_THIRTYTWO_BIT_FB),true)
-LOCAL_CFLAGS += -DTHIRTYTWO_BIT_FB
-endif 
+ifeq ($(PARTITION_LAYOUT),)
+LOCAL_CFLAGS += -DPARTITION_LAYOUT_DEFAULT
+else
+PARTITION_LAYOUT := $(strip $(PARTITION_LAYOUT))
+LOCAL_CFLAGS += -D$(PARTITION_LAYOUT)
+endif
 
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses

@@ -29,6 +29,7 @@
 #include "common.h"
 
 #include "extracommands.h"
+#include "define_roots.h"
 
 typedef struct {
     const char *name;
@@ -49,17 +50,20 @@ static const char g_raw[] = "@\0g_raw";
 static const char g_package_file[] = "@\0g_package_file";
 
 static RootInfo g_roots[] = {
-    { "BOOT:", "/dev/block/mmcblk0p22", NULL, "boot", NULL, g_raw, NULL },
-    { "CACHE:", "/dev/block/mmcblk0p27", NULL, NULL, "/cache", "auto", NULL },
-    { "DATA:", "/dev/block/mmcblk0p26", NULL, NULL, "/data", "auto", NULL },
-    { "MISC:", "/dev/block/mmcblk0p17", NULL, "misc", NULL, "auto", NULL },
+    { "BOOT:", BOOTBLK, NULL, "boot", NULL, g_raw, NULL },
+    { "CACHE:", CACHEBLK, NULL, NULL, "/cache", "auto", NULL },
+    { "DATA:", DATABLK, NULL, NULL, "/data", "auto", NULL },
+    { "MISC:", MISCBLK, NULL, "misc", NULL, "auto", NULL },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL },
-    { "RECOVERY:", "/dev/block/mmcblk0p21", NULL, "recovery", "/", g_raw, NULL },
+    { "RECOVERY:", RECOVERYBLK, NULL, "recovery", "/", g_raw, NULL },
     { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL },
     { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "auto", NULL },
-    { "SYSTEM:", "/dev/block/mmcblk0p25", NULL, NULL, "/system", "auto", NULL },
+    { "SYSTEM:", SYSTEMBLK, NULL, NULL, "/system", "auto", NULL },
     { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL },
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL },
+#ifdef HAS_INTERNAL_SD 
+   { "INTERNALSD:", INTERNALSDBLK, "NULL", NULL, "/internal_sdcard", "vfat", NULL },
+#endif
 };
 #define NUM_ROOTS (sizeof(g_roots) / sizeof(g_roots[0]))
 

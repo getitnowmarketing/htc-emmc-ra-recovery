@@ -249,6 +249,59 @@ void usb_toggle_sdcard()
                 	}
 		}	
 
+#ifdef HAS_INTERNAL_SD
+void usb_toggle_internal()
+{
+		ui_print("\nEnabling USB-MS : ");
+		        pid_t pid1 = fork();
+                	if (pid1 == 0) {
+                		char *args[] = { "/sbin/sh", "-c", "/sbin/ums_toggle internal", "1>&2", NULL };
+                	        execv("/sbin/sh", args);
+                	        fprintf(stderr, "\nUnable to enable USB-MS!\n(%s)\n", strerror(errno));
+                	        _exit(-1);
+                	}
+			int status1;
+			while (waitpid(pid1, &status1, WNOHANG) == 0) {
+				ui_print(".");
+               		        sleep(1);
+			}
+                	ui_print("\n");
+			if (!WIFEXITED(status1) || (WEXITSTATUS(status1) != 0)) {
+                		ui_print("\nError : Run 'ums_toggle' via adb!\n\n");
+                	} else {
+                                ui_clear_key_queue();
+                		ui_print("\nUSB-MS enabled!");
+				ui_print("\nPress %s to disable,", CONFIRM);
+				ui_print("\nand return to menu\n");
+		       		for (;;) {
+        	                        	int key = ui_wait_key();
+						if (key == SELECT) {
+							ui_print("\nDisabling USB-MS : ");
+						        pid_t pid1 = fork();
+				                	if (pid1 == 0) {
+				                		char *args[] = { "/sbin/sh", "-c", "/sbin/ums_toggle off", "1>&2", NULL };
+                					        execv("/sbin/sh", args);
+				                	        fprintf(stderr, "\nUnable to disable USB-MS!\n(%s)\n", strerror(errno));
+				                	        _exit(-1);
+				                	}
+							int status1;
+							while (waitpid(pid1, &status1, WNOHANG) == 0) {
+								ui_print(".");
+				               		        sleep(1);
+							}
+				                	ui_print("\n");
+							if (!WIFEXITED(status1) || (WEXITSTATUS(status1) != 0)) {
+				                		ui_print("\nError : Run 'ums_toggle' via adb!\n\n");
+				                	} else {
+				                		ui_print("\nUSB-MS disabled!\n\n");
+							}	
+							break;
+					        }
+				} 
+             }
+   }	
+#endif
+
 void wipe_battery_stats()
 {
     ensure_root_path_mounted("DATA:");
@@ -691,6 +744,9 @@ ensure_root_path_unmounted("SYSTEM:");
 ensure_root_path_unmounted("CACHE:");
 ensure_root_path_unmounted("SDCARD:");
 ensure_root_path_unmounted("SDEXT:");
+#ifdef HAS_INTERNAL_SD
+ensure_root_path_unmounted("INTERNALSD:");
+#endif
 __system("/sbin/reboot bootloader");
 }
 
@@ -702,6 +758,9 @@ ensure_root_path_unmounted("SYSTEM:");
 ensure_root_path_unmounted("CACHE:");
 ensure_root_path_unmounted("SDCARD:");
 ensure_root_path_unmounted("SDEXT:");
+#ifdef HAS_INTERNAL_SD
+ensure_root_path_unmounted("INTERNALSD:");
+#endif
 __system("/sbin/reboot recovery");
 }
 

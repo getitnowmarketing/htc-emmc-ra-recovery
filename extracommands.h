@@ -9,7 +9,10 @@ run_script(char *str1,char *str2,char *str3,char *str4,char *str5,char *str6,cha
 void
 usb_toggle_sdcard();
 
-//void usb_toggle_emmc();
+#ifdef HAS_INTERNAL_SD
+void
+usb_toggle_internal();
+#endif
 
 int
 __system(const char *command);
