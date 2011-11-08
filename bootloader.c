@@ -197,7 +197,7 @@ struct update_header {
 
     unsigned image_offset;
     unsigned image_length;
-
+#ifndef USE_QCOMM_RADIO
     unsigned bitmap_width;
     unsigned bitmap_height;
     unsigned bitmap_bpp;
@@ -207,12 +207,16 @@ struct update_header {
 
     unsigned fail_bitmap_offset;
     unsigned fail_bitmap_length;
+#endif
 };
 
 int write_update_for_bootloader(
         const char *update, int update_length,
+#ifndef USE_QCOMM_RADIO
         int bitmap_width, int bitmap_height, int bitmap_bpp,
-        const char *busy_bitmap, const char *fail_bitmap) {
+        const char *busy_bitmap, const char *fail_bitmap)
+#endif		
+		 {
     if (ensure_root_path_unmounted(CACHE_NAME)) {
         LOGE("Can't unmount %s\n", CACHE_NAME);
         return -1;
@@ -251,8 +255,8 @@ int write_update_for_bootloader(
     memcpy(&header.MAGIC, UPDATE_MAGIC, UPDATE_MAGIC_SIZE);
     header.version = UPDATE_VERSION;
     header.size = header_size;
-
-    header.image_offset = mtd_erase_blocks(write, 0);
+ 
+    off_t image_start_pos = mtd_erase_blocks(write, 0);
     header.image_length = update_length;
     if ((int) header.image_offset == -1 ||
         mtd_write_data(write, update, update_length) != update_length) {
@@ -260,14 +264,17 @@ int write_update_for_bootloader(
         mtd_write_close(write);
         return -1;
     }
-
+#ifndef USE_QCOMM_RADIO	
+    off_t busy_start_pos = mtd_erase_blocks(write, 0);
+    header.image_offset = mtd_find_write_start(write, image_start_pos);
+ 
     header.bitmap_width = bitmap_width;
     header.bitmap_height = bitmap_height;
     header.bitmap_bpp = bitmap_bpp;
 
     int bitmap_length = (bitmap_bpp + 7) / 8 * bitmap_width * bitmap_height;
 
-    header.busy_bitmap_offset = mtd_erase_blocks(write, 0);
+    
     header.busy_bitmap_length = busy_bitmap != NULL ? bitmap_length : 0;
     if ((int) header.busy_bitmap_offset == -1 ||
         mtd_write_data(write, busy_bitmap, bitmap_length) != bitmap_length) {
@@ -275,8 +282,9 @@ int write_update_for_bootloader(
         mtd_write_close(write);
         return -1;
     }
-
-    header.fail_bitmap_offset = mtd_erase_blocks(write, 0);
+    off_t fail_start_pos = mtd_erase_blocks(write, 0);
+    header.busy_bitmap_offset = mtd_find_write_start(write, busy_start_pos);
+ 
     header.fail_bitmap_length = fail_bitmap != NULL ? bitmap_length : 0;
     if ((int) header.fail_bitmap_offset == -1 ||
         mtd_write_data(write, fail_bitmap, bitmap_length) != bitmap_length) {
@@ -284,7 +292,14 @@ int write_update_for_bootloader(
         mtd_write_close(write);
         return -1;
     }
-
+#endif	
+    mtd_erase_blocks(write, 0);
+#ifndef USE_QCOMM_RADIO	
+    header.fail_bitmap_offset = mtd_find_write_start(write, fail_start_pos);
+#else
+	header.image_offset = 0x80000;
+#endif
+ 
     /* Write the header last, after all the blocks it refers to, so that
      * when the magic number is installed everything is valid.
      */
@@ -306,7 +321,7 @@ int write_update_for_bootloader(
         return -1;
     }
 
-    if (mtd_erase_blocks(write, 0) != (off_t) header.image_offset) {
+    if (mtd_erase_blocks(write, 0) != image_start_pos) {
         LOGE("Misalignment rewriting %s\n(%s)\n", CACHE_NAME, strerror(errno));
         mtd_write_close(write);
         return -1;

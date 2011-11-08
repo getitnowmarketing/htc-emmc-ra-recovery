@@ -52,8 +52,11 @@ int set_bootloader_message(const struct bootloader_message *in);
  * The expected bitmap format is 240x320, 16bpp (2Bpp), RGB 5:6:5.
  */
 int write_update_for_bootloader(
+#ifndef USE_QCOMM_RADIO
         const char *update, int update_len,
         int bitmap_width, int bitmap_height, int bitmap_bpp,
         const char *busy_bitmap, const char *error_bitmap);
-
+#else
+		const char *update, int update_len);
+#endif
 #endif
