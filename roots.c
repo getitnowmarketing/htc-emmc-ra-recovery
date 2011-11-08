@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <limits.h>
+#include <ctype.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mtdutils/mounts.h"
@@ -31,6 +32,7 @@
 #include "extracommands.h"
 #include "define_roots.h"
 
+/*
 typedef struct {
     const char *name;
     const char *device;
@@ -41,6 +43,7 @@ typedef struct {
     const char *filesystem_options;
 
 } RootInfo;
+*/
 
 /* Canonical pointers.
 xxx may just want to use enums
@@ -53,7 +56,7 @@ static RootInfo g_roots[] = {
     { "BOOT:", BOOTBLK, NULL, "boot", NULL, g_raw, NULL },
     { "CACHE:", CACHEBLK, NULL, NULL, "/cache", "auto", NULL },
     { "DATA:", DATABLK, NULL, NULL, "/data", "auto", NULL },
-    { "MISC:", MISCBLK, NULL, "misc", NULL, "auto", NULL },
+    { "MISC:", MISCBLK, NULL, "misc", NULL, "emmc", NULL },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL },
     { "RECOVERY:", RECOVERYBLK, NULL, "recovery", "/", g_raw, NULL },
     { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL },
@@ -69,7 +72,7 @@ static RootInfo g_roots[] = {
 
 // TODO: for SDCARD:, try /dev/block/mmcblk0 if mmcblk0p1 fails
 
-const RootInfo *
+static const RootInfo *
 get_root_info_for_path(const char *root_path)
 {
     const char *c;
@@ -435,3 +438,12 @@ return ret_info;
 
 return NULL;
 }
+
+
+
+const char *get_device_info(const char *root)
+{
+const RootInfo *info = get_root_info_for_path(root);
+return info;
+}
+

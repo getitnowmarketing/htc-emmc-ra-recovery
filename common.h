@@ -19,6 +19,17 @@
 
 #include <stdio.h>
 
+typedef struct {
+    const char *name;
+    const char *device;
+    const char *device2;  // If the first one doesn't work (may be NULL)
+    const char *partition_name;
+    const char *mount_point;
+    const char *filesystem;
+    const char *filesystem_options;
+
+} RootInfo;
+
 // Initialize the graphics system.
 void ui_init();
 

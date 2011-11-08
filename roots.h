@@ -62,4 +62,12 @@ int format_root_device(const char *root);
 
 const char *
 get_root_device_info(const char *root, const char* req_info, char* ret_info);
+
+/*
+static const RootInfo *
+get_root_info_for_path(const char *root_path);
+*/
+
+const char *get_device_info(const char *root);
+
 #endif  // RECOVERY_ROOTS_H_
