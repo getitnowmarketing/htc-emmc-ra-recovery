@@ -32,12 +32,16 @@
 #define VIBRATOR_TIMEOUT_FILE	"/sys/class/timed_output/vibrator/enable"
 #define VIBRATOR_TIME_MS	50
 
-#define PRESS_THRESHHOLD    10
+#define PRESS_THRESHHOLD    5
 
 #define ABS_MT_POSITION_X 0x35
 #define ABS_MT_POSITION_Y 0x36
 #define ABS_MT_TOUCH_MAJOR 0x30
 #define SYN_MT_REPORT 2
+#ifdef USE_TOUCH_SCROLLING
+// The amount of time in ms to delay before duplicating a held down key.
+#define KEYHOLD_DELAY 10
+#endif
 
 struct virtualkey {
     int scancode;
@@ -251,7 +255,12 @@ static int vk_tp_to_screen(struct position *p, int *x, int *y)
 static int vk_modify(struct ev *e, struct input_event *ev)
 {
     int i;
+#ifdef USE_TOUCH_SCROLLING
+	int x, y, change;
+    static int count = 0;
+#else
     int x, y;
+#endif
 
     if (ev->type == EV_KEY) {
         if (ev->code == BTN_TOUCH)
@@ -273,8 +282,35 @@ static int vk_modify(struct ev *e, struct input_event *ev)
             return !vk_inside_display(e->mt_p.x, &e->mt_p.xi, gr_fb_width());
         case ABS_MT_POSITION_Y:
             if (e->mt_idx) return 1;
+#ifdef USE_TOUCH_SCROLLING
+			change = e->mt_p.y - ev->value;
+            e->mt_p.y = ev->value;
+            if (!vk_inside_display(e->mt_p.y, &e->mt_p.yi, gr_fb_height()))
+                return 0;
+            else {
+                int code = -1;
+                if (change > -10 && change < 0) {
+                    code = MT_FAKE_DN;
+                    count++;
+                }
+                else if (change > 0 && change < 10) {
+                    code = MT_FAKE_UP;
+                    count++;
+                }
+
+                if (code == -1) {
+                    return 1;
+                } else if (count == 15) {
+                    ev->code = code;
+                    ev->value = 1;
+                    count = 0;
+                    return 0;
+                }
+            }
+#else
             e->mt_p.y = ev->value;
             return !vk_inside_display(e->mt_p.y, &e->mt_p.yi, gr_fb_height());
+#endif
         case ABS_MT_TOUCH_MAJOR:
             if (e->mt_idx) return 1;
             if (e->sent)
@@ -311,6 +347,9 @@ static int vk_modify(struct ev *e, struct input_event *ev)
     if (!(e->p.pressed && vk_tp_to_screen(&e->p, &x, &y)) &&
             !(e->mt_p.pressed && vk_tp_to_screen(&e->mt_p, &x, &y))) {
         /* No touch inside vk area */
+#ifdef USE_TOUCH_SCROLLING
+		e->p.pressed = e->mt_p.pressed = 0;
+#endif		
         return 0;
     }
 
@@ -338,15 +377,23 @@ static int vk_modify(struct ev *e, struct input_event *ev)
 
     return 1;
 }
-
+#ifdef USE_TOUCH_SCROLLING
+int ev_get(struct input_event *ev, unsigned dont_wait, unsigned keyheld)
+#else
 int ev_get(struct input_event *ev, unsigned dont_wait)
+#endif
 {
     int r;
     unsigned n;
 
     do {
+#ifdef USE_TOUCH_SCROLLING
+		// When keyheld is true, that means the previous event
+        // was an up/down keypress so wait KEYHOLD_DELAY.
+        r = poll(ev_fds, ev_count, dont_wait ? 0 : keyheld ? KEYHOLD_DELAY : -1);
+#else
         r = poll(ev_fds, ev_count, dont_wait ? 0 : -1);
-
+#endif
         if(r > 0) {
             for(n = 0; n < ev_count; n++) {
                 if(ev_fds[n].revents & POLLIN) {
@@ -357,6 +404,12 @@ int ev_get(struct input_event *ev, unsigned dont_wait)
                     }
                 }
             }
+#ifdef USE_TOUCH_SCROLLING
+			} else if (r == 0 && keyheld) {
+            // If a timeout occurred when keyheld was set, let the
+            // caller know so it can generate a repeated event.
+            return 1;
+#endif			
         }
     } while(dont_wait == 0);
 

@@ -41,12 +41,18 @@ PARTITION_LAYOUT := $(strip $(PARTITION_LAYOUT))
 LOCAL_CFLAGS += -D$(PARTITION_LAYOUT)
 endif
 
+ifeq ($(ENABLE_TOUCH_SCROLLING),true)
+LOCAL_CFLAGS += -DUSE_TOUCH_SCROLLING
+endif
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.
 # TODO: Build the ramdisk image in a more principled way.
 
 LOCAL_MODULE_TAGS := eng
+
+LOCAL_SRC_FILES += default_recovery_ui.c
 
 LOCAL_STATIC_LIBRARIES := libminzip libunz libamend libmtdutils libmincrypt
 LOCAL_STATIC_LIBRARIES += libminui libpixelflinger_static libpng libcutils

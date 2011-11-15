@@ -28,6 +28,8 @@
 #include "common.h"
 #include "minui/minui.h"
 
+#include "recovery_ui_keys.h"
+
 #define MAX_COLS 64
 #define MAX_ROWS 64
 
@@ -317,11 +319,33 @@ static void *input_thread(void *cookie)
 {
     int rel_sum = 0;
     int fake_key = 0;
+#ifdef USE_TOUCH_SCROLLING
+	int last_code = 0;
+    unsigned keyheld = 0;
+#endif
     for (;;) {
         // wait for the next key event
         struct input_event ev;
         do {
+#ifdef USE_TOUCH_SCROLLING
+		if (ev_get(&ev, 0, keyheld) != 1) {
+                // Check for an up/down key press
+                if (ev.type == EV_KEY && (ev.code == MT_FAKE_UP
+			|| ev.code == MT_FAKE_DN) && ev.value == 1) {
+                    keyheld = 0;
+					last_code = ev.code;
+		} else {
+                    keyheld = 0;
+		}
+        } else {
+                // A return value of 1 means the last key should be repeated
+                ev.type = EV_KEY;
+                ev.code = last_code;
+                ev.value = 1;
+            }		
+#else
             ev_get(&ev, 0);
+#endif
 
             if (ev.type == EV_SYN) {
                 continue;
@@ -346,6 +370,11 @@ static void *input_thread(void *cookie)
                         rel_sum = 0;
                     }
                 }
+#ifdef USE_TOUCH_SCROLLING
+		} else if (ev.type == EV_ABS && (ev.code == MT_FAKE_UP || ev.code == MT_FAKE_DN)) {
+                fake_key = 1;
+                ev.type = EV_KEY;	
+#endif					
             } else {
                 rel_sum = 0;
             }
@@ -377,9 +406,9 @@ static void *input_thread(void *cookie)
         }
 
         // voldown+volup+power: reboot immediately
-        if (ev.code == KEY_POWER &&
-            key_pressed[KEY_VOLUMEDOWN] &&
-            key_pressed[KEY_VOLUMEUP]) {
+        if (ev.code == RB_KEY1 &&
+            key_pressed[RB_KEY2] &&
+            key_pressed[RB_KEY3]) {
             reboot(RB_AUTOBOOT);
         }
     }
