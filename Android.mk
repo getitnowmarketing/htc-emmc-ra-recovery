@@ -45,6 +45,10 @@ ifeq ($(ENABLE_TOUCH_SCROLLING),true)
 LOCAL_CFLAGS += -DUSE_TOUCH_SCROLLING
 endif
 
+ifeq ($(BOARD_LDPI_RECOVERY),true)
+LOCAL_CFLAGS += -DBOARD_LDPI_RECOVERY
+endif
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.
