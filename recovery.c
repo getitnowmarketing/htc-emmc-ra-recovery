@@ -2444,7 +2444,7 @@ ui_start_menu(headers, items);
 			chosen_item = selected;
 			break;
 		case GO_BACK:
-			break;
+			return;
 		}
 	}	
 
