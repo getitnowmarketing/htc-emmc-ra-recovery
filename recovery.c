@@ -2494,11 +2494,11 @@ ui_start_menu(headers, items);
 				int confirm_formext4 = ui_wait_key();
 				int action_confirm_formext4 = device_handle_key(confirm_formext4, 1);
     				if (action_confirm_formext4 == SELECT_ITEM) {
-	               		
+	               		ui_print("Working ...\n");
 				upgrade_ext3_to_ext4("DATA:");
 				upgrade_ext3_to_ext4("SYSTEM:");
 				upgrade_ext3_to_ext4("CACHE:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nUpgrading data & system & cache as ext4 aborted.\n\n");
 				}
@@ -2519,11 +2519,11 @@ ui_start_menu(headers, items);
 			int confirm_formext3 = ui_wait_key();
 			int action_confirm_formext3 = device_handle_key(confirm_formext3, 1);
     				if (action_confirm_formext3 == SELECT_ITEM) {
-	               		
+	               		ui_print("Working ...\n");
 				force_format_ext3("DATA:");
 				force_format_ext3("SYSTEM:");
 				force_format_ext3("CACHE:");
-				
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nReFormatting /data /system as ext3 aborted.\n\n");
 				}
@@ -2540,9 +2540,9 @@ ui_start_menu(headers, items);
 			int confirm_sysformext3 = ui_wait_key();
 			int action_confirm_sysformext3 = device_handle_key(confirm_sysformext3, 1);
     				if (action_confirm_sysformext3 == SELECT_ITEM) {
-				
+				ui_print("Working ...\n");
 				force_format_ext3("SYSTEM:");	
-				
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nFormatting system as ext3 aborted.\n\n");
 				}
@@ -2559,9 +2559,9 @@ ui_start_menu(headers, items);
 			int confirm_dataformext3 = ui_wait_key();
 			int action_confirm_dataformext3 = device_handle_key(confirm_dataformext3, 1);
     				if (action_confirm_dataformext3 == SELECT_ITEM) {
-
+				ui_print("Working ...\n");
 				force_format_ext3("DATA:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nFormatting data as ext3 aborted.\n\n");
 				}
@@ -2578,9 +2578,9 @@ ui_start_menu(headers, items);
 			int confirm_cacformext3 = ui_wait_key();
 			int action_confirm_cacformext3 = device_handle_key(confirm_cacformext3, 1);
     				if (action_confirm_cacformext3 == SELECT_ITEM) {
-
+				ui_print("Working ...\n");
 				force_format_ext3("CACHE:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nFormatting cache as ext3 aborted.\n\n");
 				}
@@ -2597,9 +2597,9 @@ ui_start_menu(headers, items);
 			int confirm_sysupgext4 = ui_wait_key();
 			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
     				if (action_confirm_sysupgext4 == SELECT_ITEM) {
-
+				ui_print("Working ...\n");
 				upgrade_ext3_to_ext4("SYSTEM:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
 				}
@@ -2616,9 +2616,9 @@ ui_start_menu(headers, items);
 			int confirm_dataupgext4 = ui_wait_key();
 				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
     				if (action_confirm_dataupgext4 == SELECT_ITEM) {
-
+				ui_print("Working ...\n");
 				upgrade_ext3_to_ext4("DATA:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
 				}
@@ -2635,9 +2635,9 @@ ui_start_menu(headers, items);
 			int confirm_cacupgext4 = ui_wait_key();
 			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
     				if (action_confirm_cacupgext4 == SELECT_ITEM) {
-
+				ui_print("Working ...\n");
 				upgrade_ext3_to_ext4("CACHE:");
-
+				ui_print("Done!\n");
 				} else {
 					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
 				}
