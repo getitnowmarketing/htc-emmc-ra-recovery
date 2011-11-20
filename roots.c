@@ -28,6 +28,7 @@
 #include "minzip/Zip.h"
 #include "roots.h"
 #include "common.h"
+#include "mmcutils/mmcutils.h"
 
 #include "extracommands.h"
 #include "define_roots.h"
@@ -41,6 +42,7 @@ typedef struct {
     const char *mount_point;
     const char *filesystem;
     const char *filesystem_options;
+    const char *type
 
 } RootInfo;
 */
@@ -48,27 +50,64 @@ typedef struct {
 /* Canonical pointers.
 xxx may just want to use enums
  */
+
+
 static const char g_mtd_device[] = "@\0g_mtd_device";
+static const char g_mmc_device[] = "@\0g_mmc_device";
 static const char g_raw[] = "@\0g_raw";
 static const char g_package_file[] = "@\0g_package_file";
 
-static RootInfo g_roots[] = {
-    { "BOOT:", BOOTBLK, NULL, "boot", NULL, g_raw, NULL },
-    { "CACHE:", CACHEBLK, NULL, NULL, "/cache", "auto", NULL },
-    { "DATA:", DATABLK, NULL, NULL, "/data", "auto", NULL },
-    { "MISC:", MISCBLK, NULL, "misc", NULL, "emmc", NULL },
-    { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL },
-    { "RECOVERY:", RECOVERYBLK, NULL, "recovery", "/", g_raw, NULL },
-    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL },
-    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "auto", NULL },
-    { "SYSTEM:", SYSTEMBLK, NULL, NULL, "/system", "auto", NULL },
-    { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL },
-    { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL },
+static RootInfo g_roots_mtd[] = {
+    { "BOOT:", g_mtd_device, NULL, "boot", NULL, g_raw, NULL, "mtd" },
+    { "CACHE:", g_mtd_device, NULL, "cache", "/cache", "yaffs2", NULL, "mtd" },
+    { "DATA:", g_mtd_device, NULL, "userdata", "/data", "yaffs2", NULL, "mtd" },
+    { "MISC:", g_mtd_device, NULL, "misc", NULL, g_raw, NULL, "mtd" },
+    { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
+    { "RECOVERY:", g_mtd_device, NULL, "recovery", "/", g_raw, NULL, "mtd" },
+    { "SDCARD:", "/dev/block/mmcblk0p1", "/dev/block/mmcblk0", NULL, "/sdcard", "vfat", NULL, NULL },
+    { "SDEXT:", "/dev/block/mmcblk0p2", NULL, NULL, "/sd-ext", "auto", NULL, NULL },
+    { "SYSTEM:", g_mtd_device, NULL, "system", "/system", "yaffs2", NULL, "mtd" },
+    { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
+    { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
+};
+
+static RootInfo g_roots_mmc[] = {
+    { "BOOT:", g_mmc_device, NULL, "boot", NULL, g_raw, NULL, "emmc" },
+    { "CACHE:", g_mmc_device, NULL, "cache", "/cache", "auto", NULL, "emmc" },
+    { "DATA:", g_mmc_device, NULL, "userdata", "/data", "auto", NULL, "emmc" },
+    { "MISC:", g_mmc_device, NULL, "misc", NULL, g_raw, NULL, "emmc" },
+    { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
+    { "RECOVERY:", g_mmc_device, NULL, "recovery", "/", g_raw, NULL, "emmc" },
+    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL, NULL },
+    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "auto", NULL, NULL },
+    { "SYSTEM:", g_mmc_device, NULL, "system", "/system", "auto", NULL, "emmc" },
+    { "MBM:", g_mmc_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
+    { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 #ifdef HAS_INTERNAL_SD 
-   { "INTERNALSD:", INTERNALSDBLK, "NULL", NULL, "/internal_sdcard", "vfat", NULL },
+   { "INTERNALSD:", INTERNALSDBLK, "NULL", NULL, "/internal_sdcard", "vfat", NULL, NULL },
 #endif
 };
-#define NUM_ROOTS (sizeof(g_roots) / sizeof(g_roots[0]))
+
+static RootInfo *g_roots = NULL;
+
+void
+set_root_table()
+{
+    char emmc[64];
+    property_get("ro.emmc", emmc, "");
+    if(!strcmp(emmc, "1"))
+    {
+        g_roots = g_roots_mmc;
+#define NUM_ROOTS (sizeof(g_roots_mmc) / sizeof(g_roots_mmc[0]))
+    }
+    else
+    {
+        g_roots = g_roots_mtd;
+#define NUM_ROOTS (sizeof(g_roots_mtd) / sizeof(g_roots_mtd[0]))
+    }
+}
+
+
 
 // TODO: for SDCARD:, try /dev/block/mmcblk0 if mmcblk0p1 fails
 
@@ -265,6 +304,23 @@ ensure_root_path_mounted(const char *root_path)
         return mtd_mount_partition(partition, info->mount_point,
                 info->filesystem, 0);
     }
+	if (info->device == g_mmc_device) {
+        if (info->partition_name == NULL) {
+            return -1;
+        }
+//TODO: make the mmc stuff scan once when it needs to
+        mmc_scan_partitions();
+        const MmcPartition *partition;
+        partition = mmc_find_partition_by_name(info->partition_name);
+        if (partition == NULL) {
+            return -1;
+        }
+	if (!strcmp(info->filesystem, "ext3")) { 
+        return mmc_mount_partition(partition, info->mount_point, 0);
+	} else {
+	return mount_internal(partition->device_index, info->mount_point, info->filesystem, info->filesystem_options);
+        } 
+    }
 
     if (info->device == NULL || info->mount_point == NULL ||
         info->filesystem == NULL ||
@@ -332,6 +388,19 @@ get_root_mtd_partition(const char *root_path)
     return mtd_find_partition_by_name(info->partition_name);
 }
 
+const MmcPartition *
+get_root_mmc_partition(const char *root_path)
+{
+	const RootInfo *info = get_root_info_for_path(root_path);
+	if (info == NULL || info->device != g_mmc_device ||
+		info->partition_name == NULL)
+	{
+		return NULL;
+	}
+	mmc_scan_partitions();
+	return mmc_find_partition_by_name(info->partition_name);
+}
+
 int
 format_root_device(const char *root)
 {
@@ -354,7 +423,7 @@ format_root_device(const char *root)
         LOGW("format_root_device: can't resolve \"%s\"\n", root);
         return -1;
     }
-    if (info->mount_point != NULL && info->device == g_mtd_device) {
+    if (info->mount_point != NULL && (info->device == g_mtd_device || info->device == g_mmc_device)) {
         /* Don't try to format a mounted device.
          */
         int ret = ensure_root_path_unmounted(root);
@@ -392,58 +461,77 @@ format_root_device(const char *root)
             }
         }
     }
+   
 	if (full_ext_format_enabled) {
-		if (!strcmp(info->filesystem, "auto") || !strcmp(info->filesystem, "ext3") || !strcmp(info->filesystem, "ext4")) {
-			if (!strcmp(info->mount_point, "/system") || !strcmp(info->mount_point, "/data") || !strcmp(info->mount_point, "/cache")) {
-				return check_fs_format(root, info->mount_point, 0, 0);
-		}
-	     }
+	//Handle MMC device types
+   	 if(info->device == g_mmc_device) {
+       	    mmc_scan_partitions();
+       	    const MmcPartition *partition;
+            partition = mmc_find_partition_by_name(info->partition_name);
+        if (partition == NULL) {
+            LOGE("format_root_device: can't find mmc partition \"%s\"\n",
+                    info->partition_name);
+            return -1;
+        }
+        
+	if (!strcmp(info->filesystem, "ext3")) {
+            mmc_format_ext3(partition);
+               return 0;
 	}
-    
+	
+	if (!strcmp(info->filesystem, "ext4")) {
+            mmc_format_ext4(partition);
+		return 0;
+        }
+	
+	if (!strcmp(info->filesystem, "auto")) {
+		call_format_ext(root);
+		return 0;
+        }
+    }
+  }
+	/* Format raw */
+	if(info->device == g_mmc_device) {
+       	    mmc_scan_partitions();
+       	    const MmcPartition *partition;
+            partition = mmc_find_partition_by_name(info->partition_name);
+        if (partition == NULL) {
+            LOGE("format_root_device: can't find mmc partition \"%s\"\n",
+                    info->partition_name);
+            return -1;
+        }
+	if (!strcmp(partition->name, "boot")) {
+		return format_raw_partition(root);
+	}
+}
+
+
+
     return format_non_mtd_device(root);
 }
 
-const char* get_root_device_info(const char *root, const char* req_info, char* ret_info)
-{
 
-const RootInfo *info = get_root_info_for_path(root);
-    if (info == NULL || info->device == NULL) {
-        LOGW("can't find \"%s\"\n", root);
+const RootInfo *get_device_info(const char *root)
+{
+const char *c;
+
+    /* Find the first colon.
+     */
+    c = root;
+    while (*c != '\0' && *c != ':') {
+        c++;
+    }
+    if (*c == '\0') {
         return NULL;
     }
-if (!strcmp(req_info, "device")) {
-strcpy(ret_info, info->device);
-return ret_info;
-}
-
-if (!strcmp(req_info, "name")) {
-strcpy(ret_info, info->name);
-return ret_info;
-}
-
-if (!strcmp(req_info, "partition_name")) {
-strcpy(ret_info, info->partition_name);
-return ret_info;
-}
-
-if (!strcmp(req_info, "mount_point")) {
-strcpy(ret_info, info->mount_point);
-return ret_info;
-}
-
-if (!strcmp(req_info, "filesystem")) {
-strcpy(ret_info, info->filesystem);
-return ret_info;
-}
-
-return NULL;
-}
-
-
-
-const char *get_device_info(const char *root)
-{
-const RootInfo *info = get_root_info_for_path(root);
-return info;
+    size_t len = c - root + 1;
+    size_t i;
+    for (i = 0; i < NUM_ROOTS; i++) {
+        RootInfo *info = &g_roots[i];
+        if (strncmp(info->name, root, len) == 0) {
+            return info;
+        }
+    }
+    return NULL;
 }
 

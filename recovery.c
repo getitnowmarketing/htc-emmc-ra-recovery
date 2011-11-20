@@ -1452,14 +1452,15 @@ show_menu_wipe()
 #define ITEM_WIPE_DATA     2
 #define ITEM_WIPE_CACHE    3
 #define ITEM_WIPE_SECURE   4
-#define ITEM_WIPE_EXT      5
-#define ITEM_WIPE_SYSTEM   6
-#define ITEM_WIPE_DALVIK   7
-#define ITEM_WIPE_BAT      8
-#define ITEM_WIPE_ROT      9
-#define ITEM_WIPE_SDCARD   10
+#define ITEM_WIPE_BOOT     5
+#define ITEM_WIPE_EXT      6
+#define ITEM_WIPE_SYSTEM   7
+#define ITEM_WIPE_DALVIK   8
+#define ITEM_WIPE_BAT      9
+#define ITEM_WIPE_ROT      10
+#define ITEM_WIPE_SDCARD   11
 #ifdef HAS_INTERNAL_SD
-#define ITEM_WIPE_INTERNAL 11
+#define ITEM_WIPE_INTERNAL 12
 #endif
 
     static char* items[] = { "- Return",
@@ -1467,6 +1468,7 @@ show_menu_wipe()
 			     "- Wipe /data",
                              "- Wipe /cache",
 			     "- Wipe /sdcard/.android_secure",
+			     "- Wipe /boot",
                              "- Wipe /sd-ext",
                              "- Wipe /system",
 			     "- Wipe Dalvik-cache",
@@ -1708,6 +1710,22 @@ show_menu_wipe()
                         ui_print("/system wipe complete!\n\n");
                     } else {
                         ui_print("/system wipe aborted!\n\n");
+                    }
+                    if (!ui_text_visible()) return;
+                    break;
+
+		case ITEM_WIPE_BOOT:
+                    ui_clear_key_queue();
+		    ui_print("\nWipe /boot");
+                    ui_print("\nPress %s to confirm,", CONFIRM);
+                    ui_print("\nany other key to abort.\n\n");
+                    int confirm_wipe_boot = ui_wait_key();
+                    int action_confirm_wipe_boot = device_handle_key(confirm_wipe_boot, 1);
+    		    if (action_confirm_wipe_boot == SELECT_ITEM) {
+                        erase_root("BOOT:");
+                        ui_print("/boot wipe complete!\n\n");
+                    } else {
+                        ui_print("/boot wipe aborted!\n\n");
                     }
                     if (!ui_text_visible()) return;
                     break;
@@ -2278,6 +2296,7 @@ create_mount_items(char *items[],int item)
 	int i=0;
 	
 	static char* roots[] = { 
+				
 				"SYSTEM:",
 				"CACHE:",
 				"DATA:",
@@ -2286,6 +2305,7 @@ create_mount_items(char *items[],int item)
              	NULL};
 	
 	static char* items_m[] = { 
+				
 				"- Mount /system",
 				"- Mount /cache",
 				"- Mount /data",
@@ -2294,6 +2314,7 @@ create_mount_items(char *items[],int item)
 		NULL};
 	
 	static char* items_u[] = { 
+								
 				"- Unmount /system",
 				"- Unmount /cache",
 				"- Unmount /data",
@@ -2310,13 +2331,14 @@ create_mount_items(char *items[],int item)
 				ensure_root_path_unmounted(roots[i]);
 			else
 				ensure_root_path_mounted(roots[i]);
-		}
+		 }	
+					
 		
 		if (is_root_path_mounted(roots[i]))
 			items[i]=items_u[i];
 		else
 			items[i]=items_m[i];
-			
+	   		
 		i++;
 	}
 }
@@ -2361,7 +2383,8 @@ show_menu_mount()
 			return;
 		}
 	}	
-        if (chosen_item >= 0) {
+        
+	if (chosen_item >= 0) {
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
@@ -2460,15 +2483,6 @@ ui_start_menu(headers, items);
 
 		
 		case ITEM_EXT4_CHK:
-			/*
-			run_script("\nChecking ext filesystem",
-				   "\non /data : ",
-				   "/sbin/partext4 check",
-				   "\nUnable to execute partext4!\n(%s)\n",
-				   "\nError : Run 'partext4 check' via adb!\n\n",
-				   "\nExt type check complete!\n\n",
-				   "\nExt type check aborted!\n\n");
-			*/
 				check_fs();
 			break;
 	
@@ -2480,12 +2494,13 @@ ui_start_menu(headers, items);
 				int confirm_formext4 = ui_wait_key();
 				int action_confirm_formext4 = device_handle_key(confirm_formext4, 1);
     				if (action_confirm_formext4 == SELECT_ITEM) {
-	               
-				check_fs_format("DATA:", "/data", 1, 0);
-				check_fs_format("SYSTEM:", "/system", 1, 0);
-				check_fs_format("CACHE:", "/cache", 1, 0);
+	               		
+				upgrade_ext3_to_ext4("DATA:");
+				upgrade_ext3_to_ext4("SYSTEM:");
+				upgrade_ext3_to_ext4("CACHE:");
+
 				} else {
-					 ui_print("\nFormatting data & system & cache as ext4 aborted.\n\n");
+					 ui_print("\nUpgrading data & system & cache as ext4 aborted.\n\n");
 				}
 				if (!ui_text_visible()) return;
 				
@@ -2504,10 +2519,11 @@ ui_start_menu(headers, items);
 			int confirm_formext3 = ui_wait_key();
 			int action_confirm_formext3 = device_handle_key(confirm_formext3, 1);
     				if (action_confirm_formext3 == SELECT_ITEM) {
-	               
-				check_fs_format("DATA:", "/data", 0, 1);
-				check_fs_format("SYSTEM:", "/system", 0, 1);
-				check_fs_format("CACHE:", "/cache", 0, 1);
+	               		
+				force_format_ext3("DATA:");
+				force_format_ext3("SYSTEM:");
+				force_format_ext3("CACHE:");
+				
 				} else {
 					 ui_print("\nReFormatting /data /system as ext3 aborted.\n\n");
 				}
@@ -2524,7 +2540,9 @@ ui_start_menu(headers, items);
 			int confirm_sysformext3 = ui_wait_key();
 			int action_confirm_sysformext3 = device_handle_key(confirm_sysformext3, 1);
     				if (action_confirm_sysformext3 == SELECT_ITEM) {
-				check_fs_format("SYSTEM:", "/system", 0, 1);
+				
+				force_format_ext3("SYSTEM:");	
+				
 				} else {
 					 ui_print("\nFormatting system as ext3 aborted.\n\n");
 				}
@@ -2541,7 +2559,9 @@ ui_start_menu(headers, items);
 			int confirm_dataformext3 = ui_wait_key();
 			int action_confirm_dataformext3 = device_handle_key(confirm_dataformext3, 1);
     				if (action_confirm_dataformext3 == SELECT_ITEM) {
-				check_fs_format("DATA:", "/data", 0, 1);
+
+				force_format_ext3("DATA:");
+
 				} else {
 					 ui_print("\nFormatting data as ext3 aborted.\n\n");
 				}
@@ -2558,7 +2578,9 @@ ui_start_menu(headers, items);
 			int confirm_cacformext3 = ui_wait_key();
 			int action_confirm_cacformext3 = device_handle_key(confirm_cacformext3, 1);
     				if (action_confirm_cacformext3 == SELECT_ITEM) {
-				check_fs_format("CACHE:", "/cache", 0, 1);
+
+				force_format_ext3("CACHE:");
+
 				} else {
 					 ui_print("\nFormatting cache as ext3 aborted.\n\n");
 				}
@@ -2575,7 +2597,9 @@ ui_start_menu(headers, items);
 			int confirm_sysupgext4 = ui_wait_key();
 			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
     				if (action_confirm_sysupgext4 == SELECT_ITEM) {
-				check_fs_format("SYSTEM:", "/system", 1, 0);
+
+				upgrade_ext3_to_ext4("SYSTEM:");
+
 				} else {
 					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
 				}
@@ -2592,7 +2616,9 @@ ui_start_menu(headers, items);
 			int confirm_dataupgext4 = ui_wait_key();
 				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
     				if (action_confirm_dataupgext4 == SELECT_ITEM) {
-				check_fs_format("DATA:", "/data", 1, 0);
+
+				upgrade_ext3_to_ext4("DATA:");
+
 				} else {
 					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
 				}
@@ -2609,7 +2635,9 @@ ui_start_menu(headers, items);
 			int confirm_cacupgext4 = ui_wait_key();
 			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
     				if (action_confirm_cacupgext4 == SELECT_ITEM) {
-				check_fs_format("CACHE:", "/cache", 1, 0);
+
+				upgrade_ext3_to_ext4("CACHE:");
+
 				} else {
 					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
 				}
@@ -2743,14 +2771,19 @@ show_menu_developer()
 #define ITEM_DEV_EXT_TOGGLE 4
 #define ITEM_DEV_RB_BOOT 5
 #define ITEM_DEV_RB_REC 6
-
+/* This is for porting test
+#define ITEM_DEV_ROOT_TEST 7
+*/
     static char* items[] = { "- Return",
 			     "- Make and flash boot from zimage",
 			     "- Install su & superuser",
 			     "- Install eng (unguarded) su",
 			     "- Toggle full format ext3 ext4",
 			     "- Reboot to bootloader",
-			     "- Reboot recovery",			     	
+			     "- Reboot recovery",
+			    /* Porting Test
+			     "- Root test",
+			    */			     	
                              	NULL };
 
     ui_start_menu(headers, items);
@@ -2853,10 +2886,18 @@ show_menu_developer()
 
 		case ITEM_DEV_RB_BOOT:
 				rb_bootloader();
-	
-
 			break;
-
+/* Porting Test
+		case ITEM_DEV_ROOT_TEST:
+				display_roots("BOOT:");
+				display_roots("SYSTEM:");
+				display_roots("DATA:");
+				display_roots("CACHE:");
+				display_roots("RECOVERY:");
+				display_roots("MISC:");
+				
+			break;	
+*/
 			}
 // if we didn't return from this function to reboot, show
             // the menu again.
@@ -3037,6 +3078,7 @@ main(int argc, char **argv)
     property_get("ro.modversion", &prop_value[0], "not set");
  
     ui_init();
+    set_root_table();
     ui_print("Build : ");
     ui_print(prop_value);
     ui_print("\n");

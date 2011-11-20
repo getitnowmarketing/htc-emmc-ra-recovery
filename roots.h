@@ -19,6 +19,8 @@
 
 #include "minzip/Zip.h"
 #include "mtdutils/mtdutils.h"
+#include "mmcutils/mmcutils.h"
+#include "common.h"
 
 /* Any of the "root_path" arguments can be paths with relative
  * components, like "SYSTEM:a/b/c".
@@ -55,19 +57,19 @@ int ensure_root_path_unmounted(const char *root_path);
 
 const MtdPartition *get_root_mtd_partition(const char *root_path);
 
+const MmcPartition *get_root_mmc_partition(const char *root_path);
 /* "root" must be the exact name of the root; no relative path is permitted.
  * If the named root is mounted, this will attempt to unmount it first.
  */
 int format_root_device(const char *root);
-
-const char *
-get_root_device_info(const char *root, const char* req_info, char* ret_info);
 
 /*
 static const RootInfo *
 get_root_info_for_path(const char *root_path);
 */
 
-const char *get_device_info(const char *root);
+const RootInfo *get_device_info(const char *root);
+
+void set_root_table();
 
 #endif  // RECOVERY_ROOTS_H_

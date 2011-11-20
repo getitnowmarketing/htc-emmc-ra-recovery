@@ -27,6 +27,7 @@ typedef struct {
     const char *mount_point;
     const char *filesystem;
     const char *filesystem_options;
+    const char *type;
 
 } RootInfo;
 

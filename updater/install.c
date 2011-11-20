@@ -31,6 +31,7 @@
 #include "minzip/DirUtil.h"
 #include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
+#include "mmcutils/mmcutils.h"
 #include "updater.h"
 
 
@@ -77,6 +78,23 @@ char* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
         }
         if (mtd_mount_partition(mtd, mount_point, "yaffs2", 0 /* rw */) != 0) {
             fprintf(stderr, "mtd mount of %s failed: %s\n",
+                    location, strerror(errno));
+            result = strdup("");
+            goto done;
+        }
+        result = mount_point;
+	} else if (strcmp(type, "MMC") == 0) {
+        mmc_scan_partitions();
+        const MmcPartition* mmc;
+        mmc = mmc_find_partition_by_name(location);
+        if (mmc == NULL) {
+            fprintf(stderr, "%s: no mmc partition named \"%s\"",
+                    name, location);
+            result = strdup("");
+            goto done;
+        }
+        if (mmc_mount_partition(mmc, mount_point, 0 /* rw */) != 0) {
+            fprintf(stderr, "mmc mount of %s failed: %s\n",
                     location, strerror(errno));
             result = strdup("");
             goto done;
@@ -207,11 +225,24 @@ char* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
             result = strdup("");
             goto done;
         }
-        result = location;
+        } else if (strcmp(type, "MMC") == 0) {
+        mmc_scan_partitions();
+        const MmcPartition* mmc = mmc_find_partition_by_name(location);
+        if (mmc == NULL) {
+            fprintf(stderr, "%s: no mmc partition named \"%s\"",
+                    name, location);
+            result = strdup("");
+            goto done;
+        }
+        if (mmc_format_ext3(mmc))
+        {
+            result = strdup("");
+            goto done;
+        }
     } else {
         fprintf(stderr, "%s: unsupported type \"%s\"", name, type);
     }
-
+	result = location;
 done:
     free(type);
     if (result != location) free(location);
@@ -586,7 +617,7 @@ char* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (mtd == NULL) {
         fprintf(stderr, "%s: no mtd partition named \"%s\"\n", name, partition);
         result = strdup("");
-        goto done;
+        goto MMC;
     }
 
     MtdWriteContext* ctx = mtd_write_partition(mtd);
@@ -632,6 +663,22 @@ char* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
            success ? "wrote" : "failed to write", partition, filename);
 
     result = success ? partition : strdup("");
+    goto done;
+
+MMC:
+    mmc_scan_partitions();
+    const MmcPartition* mmc = mmc_find_partition_by_name(partition);
+    if (mmc == NULL) {
+        fprintf(stderr, "%s: no mmc partition named \"%s\"\n", name, partition);
+        result = strdup("");
+        goto done;
+    }
+    if (mmc_raw_copy(mmc, filename)) {
+        fprintf(stderr, "%s: error erasing mmc partition named \"%s\"\n", name, partition);
+        result = strdup("");
+        goto done;
+    }
+    result = partition;
 
 done:
     if (result != partition) free(partition);

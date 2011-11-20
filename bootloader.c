@@ -17,6 +17,7 @@
 #include "bootloader.h"
 #include "common.h"
 #include "mtdutils/mtdutils.h"
+#include "mmcutils/mmcutils.h"
 #include "roots.h"
 
 #include <errno.h>
@@ -29,10 +30,10 @@ static int get_bootloader_message_block(struct bootloader_message *out, const Ro
 static int set_bootloader_message_block(const struct bootloader_message *in, const RootInfo* info);
 
 int get_bootloader_message(struct bootloader_message *out) {
-    RootInfo* info = get_device_info("MISC:");
-    if (strcmp(info->filesystem, "g_raw") == 0) {
+    const RootInfo* info = get_device_info("MISC:");
+    if (strcmp(info->type, "mtd") == 0) {
         return get_bootloader_message_mtd(out, info);
-    } else if (strcmp(info->filesystem, "emmc") == 0) {
+    } else if (strcmp(info->type, "emmc") == 0) {
         return get_bootloader_message_block(out, info);
     }
     LOGE("unknown misc partition fs_type \"%s\"\n", info->filesystem);
@@ -40,10 +41,10 @@ int get_bootloader_message(struct bootloader_message *out) {
 }
 
 int set_bootloader_message(const struct bootloader_message *in) {
-    RootInfo* info = get_device_info("MISC:");
-    if (strcmp(info->filesystem, "g_raw") == 0) {
+    const RootInfo* info = get_device_info("MISC:");
+    if (strcmp(info->type, "mtd") == 0) {
         return set_bootloader_message_mtd(in, info);
-    } else if (strcmp(info->filesystem, "emmc") == 0) {
+    } else if (strcmp(info->type, "emmc") == 0) {
         return set_bootloader_message_block(in, info);
     }
     LOGE("unknown misc partition fs_type \"%s\"\n", info->filesystem);
@@ -62,22 +63,22 @@ static int get_bootloader_message_mtd(struct bootloader_message *out,
                                       const RootInfo* info) {
     size_t write_size;
     mtd_scan_partitions();
-    const MtdPartition *part = mtd_find_partition_by_name(info->device);
+    const MtdPartition *part = mtd_find_partition_by_name(info->partition_name);
     if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) {
-        LOGE("Can't find %s\n", info->device);
+        LOGE("Can't find %s\n", info->partition_name);
         return -1;
     }
 
     MtdReadContext *read = mtd_read_partition(part);
     if (read == NULL) {
-        LOGE("Can't open %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't open %s\n(%s)\n", info->partition_name, strerror(errno));
         return -1;
     }
 
     const ssize_t size = write_size * MISC_PAGES;
     char data[size];
     ssize_t r = mtd_read_data(read, data, size);
-    if (r != size) LOGE("Can't read %s\n(%s)\n", info->device, strerror(errno));
+    if (r != size) LOGE("Can't read %s\n(%s)\n", info->partition_name, strerror(errno));
     mtd_read_close(read);
     if (r != size) return -1;
 
@@ -88,22 +89,22 @@ static int set_bootloader_message_mtd(const struct bootloader_message *in,
                                       const RootInfo* info) {
     size_t write_size;
     mtd_scan_partitions();
-    const MtdPartition *part = mtd_find_partition_by_name(info->device);
+    const MtdPartition *part = mtd_find_partition_by_name(info->partition_name);
     if (part == NULL || mtd_partition_info(part, NULL, NULL, &write_size)) {
-        LOGE("Can't find %s\n", info->device);
+        LOGE("Can't find %s\n", info->partition_name);
         return -1;
     }
 
     MtdReadContext *read = mtd_read_partition(part);
     if (read == NULL) {
-        LOGE("Can't open %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't open %s\n(%s)\n", info->partition_name, strerror(errno));
         return -1;
     }
 
     ssize_t size = write_size * MISC_PAGES;
     char data[size];
     ssize_t r = mtd_read_data(read, data, size);
-    if (r != size) LOGE("Can't read %s\n(%s)\n", info->device, strerror(errno));
+    if (r != size) LOGE("Can't read %s\n(%s)\n", info->partition_name, strerror(errno));
     mtd_read_close(read);
     if (r != size) return -1;
 
@@ -111,16 +112,16 @@ static int set_bootloader_message_mtd(const struct bootloader_message *in,
 
     MtdWriteContext *write = mtd_write_partition(part);
     if (write == NULL) {
-        LOGE("Can't open %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't open %s\n(%s)\n", info->partition_name, strerror(errno));
         return -1;
     }
     if (mtd_write_data(write, data, size) != size) {
-        LOGE("Can't write %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't write %s\n(%s)\n", info->partition_name, strerror(errno));
         mtd_write_close(write);
         return -1;
     }
     if (mtd_write_close(write)) {
-        LOGE("Can't finish %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't finish %s\n(%s)\n", info->partition_name, strerror(errno));
         return -1;
     }
 
@@ -135,19 +136,26 @@ static int set_bootloader_message_mtd(const struct bootloader_message *in,
 
 static int get_bootloader_message_block(struct bootloader_message *out,
                                         const RootInfo* info) {
-    FILE* f = fopen(info->device, "rb");
+    mmc_scan_partitions();
+    const MmcPartition *partition;
+    partition = mmc_find_partition_by_name(info->partition_name);
+    if (partition == NULL) {
+    LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
+	return -1;
+    }
+    FILE* f = fopen(partition->device_index, "rb");
     if (f == NULL) {
-        LOGE("Can't open %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't open %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     struct bootloader_message temp;
     int count = fread(&temp, sizeof(temp), 1, f);
     if (count != 1) {
-        LOGE("Failed reading %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Failed reading %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     if (fclose(f) != 0) {
-        LOGE("Failed closing %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Failed closing %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     memcpy(out, &temp, sizeof(temp));
@@ -156,18 +164,25 @@ static int get_bootloader_message_block(struct bootloader_message *out,
 
 static int set_bootloader_message_block(const struct bootloader_message *in,
                                         const RootInfo* info) {
-    FILE* f = fopen(info->device, "wb");
+    mmc_scan_partitions();
+    const MmcPartition *partition;
+    partition = mmc_find_partition_by_name(info->partition_name);
+    if (partition == NULL) {
+    LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
+	return -1;
+    }
+    FILE* f = fopen(partition->device_index, "wb");
     if (f == NULL) {
-        LOGE("Can't open %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Can't open %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     int count = fwrite(in, sizeof(*in), 1, f);
     if (count != 1) {
-        LOGE("Failed writing %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Failed writing %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     if (fclose(f) != 0) {
-        LOGE("Failed closing %s\n(%s)\n", info->device, strerror(errno));
+        LOGE("Failed closing %s\n(%s)\n", partition->name, strerror(errno));
         return -1;
     }
     return 0;

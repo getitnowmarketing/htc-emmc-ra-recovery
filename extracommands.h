@@ -50,21 +50,6 @@ full_ext_format_enabled;
 void
 toggle_full_ext_format();
 
-int
-upgrade_ext3(const char* device, const char* mount_pt, const char* root);
-
-int
-format_ext4(const char* device, const char* mount_pt, const char* root);
-
-int
-format_ext3(const char* device, const char* mount_pt, const char* root);
-
-int
-get_boot_device(const char *root, const char* request);
-
-int
-dump_device(const char *device);
-
 void
 unpack_boot();
 
@@ -97,3 +82,29 @@ rb_bootloader();
 
 void
 rb_recovery();
+
+void
+display_roots(const char *root);
+
+int
+call_format_ext(const char* root_path);
+
+const char *
+check_extfs_format(const char* root);
+
+int
+upgrade_ext3_to_ext4(const char* root);
+
+int
+force_format_ext3(const char* root);
+
+int
+force_format_ext4(const char* root);
+
+int
+format_raw_partition(const char* root);
+
+
+
+
+
