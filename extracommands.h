@@ -104,6 +104,9 @@ force_format_ext4(const char* root);
 int
 format_raw_partition(const char* root);
 
+int
+dump_device(const char *root);
+
 
 
 
