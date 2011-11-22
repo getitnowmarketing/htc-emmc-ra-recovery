@@ -49,6 +49,10 @@ ifeq ($(BOARD_LDPI_RECOVERY),true)
 LOCAL_CFLAGS += -DBOARD_LDPI_RECOVERY
 endif
 
+ifeq ($(TARGET_NO_EXT4),true)
+LOCAL_CFLAGS += -DKERNEL_NO_EXT4
+endif
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.

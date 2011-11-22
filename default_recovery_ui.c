@@ -26,6 +26,7 @@ int device_handle_key(int key_code, int visable) {
 
 			case KEY_POWER:
 			case KEY_SEARCH:
+			case KEY_END:
 				return SELECT_ITEM;
 
 			case KEY_BACK:

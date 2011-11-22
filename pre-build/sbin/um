@@ -1,6 +1,6 @@
 #!/sbin/sh
 
-echo "" > /sys/devices/platform/usb_mass_storage/lun0/file
+echo "" > /sys/devices/platform/msm_hsusb/gadget/lun0/file
 
 LIST=`mount | grep "^/" | grep "type yaffs*\|vfat\|ext*" | grep "system*\|data*\|sd-ext*\|sdcard*" | cut -d\  -f 3 | sort -rn`
 

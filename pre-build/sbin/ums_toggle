@@ -6,21 +6,35 @@ if [ $? != "0" ]; then
 	exit 1
 fi
 
+chmod 0777 /sys/module/android/parameters/usb_mode
+chmod 0777 /sys/devices/platform/msm_hsusb/gadget/lun0/file
+
 case $1 in
     on)
-	echo /dev/block/mmcblk1p1 > /sys/devices/platform/usb_mass_storage/lun0/file
+	#echo 6308 > /sys/module/android/parameters/product_id
+        echo /dev/block/mmcblk1p1 > /sys/devices/platform/msm_hsusb/gadget/lun0/file
+	sleep 1
+	
+	echo mass_storage > /sys/module/android/parameters/usb_mode
 	echo "USB Mass Storage enabled"
+
         ;;
     off)
 	sync
-	echo "" > /sys/devices/platform/usb_mass_storage/lun0/file
+	echo "" > /sys/devices/platform/msm_hsusb/gadget/lun0/file
+	sleep 1
+	echo internet_connection > /sys/module/android/parameters/usb_mode
 	echo "USB Mass Storage disabled"
 	;;
     internal)
-	echo /dev/block/mmcblk0p37 > /sys/devices/platform/usb_mass_storage/lun0/file
-	echo "Internal USB Mass Storage enabled"
-	;;
-    --)
+	#echo 6308 > /sys/module/android/parameters/product_id
+	echo /dev/block/mmcblk0p15 > /sys/devices/platform/msm_hsusb/gadget/lun0/file
+	sleep 1
+	
+	echo mass_storage > /sys/module/android/parameters/usb_mode
+	echo "USB Mass Storage enabled"  
+	;;  
+	--)
         ;;
 esac
 

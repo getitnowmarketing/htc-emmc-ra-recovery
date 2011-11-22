@@ -607,7 +607,7 @@ void rb_recovery()
 }
 
 
-/* Porting Test
+//Porting Test
 void display_roots(const char *root)
 {
   const RootInfo* info = get_device_info(root);
@@ -623,7 +623,7 @@ void display_roots(const char *root)
 		LOGW(" filesystem : %s device_index : %s name : %s dstatus : %d dtype : %d dfirstsec : %d dsize : %d \n\n", partition->filesystem, partition->device_index, partition->name, partition->dstatus, partition->dtype, partition->dfirstsec, partition->dsize); 	
 	}
 }	
-*/  
+ 
 
 const char* check_extfs_format(const char* root_path)
 {

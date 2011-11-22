@@ -89,10 +89,9 @@ NOMISC=0
 NOCACHE=0
 NOSPLASH1=0
 NOSPLASH2=0
-NOEXT=1
-
-NOANDROID_SECURE=1
-NOWIMAX=1
+EXT=0
+ANDROID_SECURE=0
+WIMAX=0
 
 COMPRESS=0
 GETUPDATE=0
@@ -109,11 +108,16 @@ ITSANIMAGE=0
 WEBGETSOURCE=""
 WEBGETTARGET="/sdcard"
 DB="/dev/block/"
-RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
-BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
-MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
-WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
-YAFFSEXTASECURE=1
+#RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
+#BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
+#MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
+#WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
+# Modified for VS910 LG Revolution
+BOOTBLK="mmcblk0p9"
+RECBLK="mmcblk0p14"
+MISCBLK="mmcblk0p8"
+#
+YAFFSEXTASECURE=0
 CWMRESTORE=0
 CWMCOMPAT=0
 
@@ -377,7 +381,7 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             shift
             ;;
         --wimax)
-            NOWIMAX=0
+            WIMAX=1
             #$ECHO "wimax"
             shift
             ;;
@@ -392,19 +396,19 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             shift
             ;;
         -e)
-            NOEXT=0
+            EXT=1
             shift
             ;;
         --ext)
-            NOEXT=0
+            EXT=1
             shift
             ;;
         -a)
-            NOANDROID_SECURE=0
+            ANDROID_SECURE=1
             shift
             ;;
         --android_secure)
-            NOANDROID_SECURE=0
+            ANDROID_SECURE=1
             shift
             ;;
         --restore)
@@ -933,7 +937,9 @@ if [ "$RESTORE" == 1 ]; then
 
 		if [ `ls ext* 2>/dev/null | wc -l` == 0 ]; then
                     if [ `ls sd-ext.*.tar 2>/dev/null | wc -l` == 0 ]; then
-			NOEXT=1       
+			EXT=0
+		else
+		        EXT=1
                     fi
 		fi
 		# GNM : If there's no android_secure backup set androidsecure to 0 so android_secure restore doesn't start                
@@ -948,18 +954,20 @@ if [ "$RESTORE" == 1 ]; then
 
 		if [ `ls android_secure* 2>/dev/null | wc -l` == 0 ]; then
                	    if [ `ls .android_secure.*.tar 2>/dev/null | wc -l` == 0 ]; then
-                    NOANDROID_SECURE=1
+			ANDROID_SECURE=0
+		else
+		    	ANDROID_SECURE=1
                     fi
 		fi
 		
 
 				# Amon_RA : If there's no wimax backup set nowimax to 1 so wimax restore doesn't start                
                 if [ `ls wimax* 2>/dev/null | wc -l` == 0 ]; then
-                    NOWIMAX=1
+                    WIMAX=0
 				
                 fi
 
-		for image in boot recovery wimax misc; do
+		for image in boot recovery wimax; do
                     if [ "$NOBOOT" == "1" -a "$image" == "boot" ]; then
                         $ECHO ""
                         $ECHO "Not flashing boot image!"
@@ -972,16 +980,9 @@ if [ "$RESTORE" == 1 ]; then
                         $ECHO ""
                         continue
                     fi
-                    if [ "$NOWIMAX" == "1" -a "$image" == "wimax" ]; then
+					if [ "$WIMAX" == "0" -a "$image" == "wimax" ]; then
                         $ECHO ""
                         $ECHO "Not flashing wimax image!"
-                        $ECHO ""
-                        continue
-                    fi
-					
-					if [ "$NOMISC" == "1" -a "$image" == "misc" ]; then
-                        $ECHO ""
-                        $ECHO "Not flashing misc image!"
                         $ECHO ""
                         continue
                     fi
@@ -998,11 +999,7 @@ if [ "$RESTORE" == 1 ]; then
 			if [ $image = "wimax" ]; then
 			DEVICEBLK=$DB$WIMAXBLK
 		  		fi	
-	    	
-			if [ $image = "misc" ]; then
-			DEVICEBLK=$DB$MISCBLK
-		  		fi    			
-				
+	    	    			
 			# zeroing the boot & recovery prior to flashing
 			#dd if=/dev/zero of=/$DEVICEBLK
 			#echo "Zeroing $DEVICEBLK"
@@ -1028,12 +1025,6 @@ if [ "$RESTORE" == 1 ]; then
                             continue
                         fi
 						
-			if [ "$NOCACHE" == "1" -a "$image" == "cache" ]; then
-                            $ECHO ""
-                            $ECHO "Not restoring cache image!"
-                            $ECHO ""
-                            continue
-                        fi
 			$ECHO "Erasing /$image..."
 			cd /$image
 			rm -rf * 2>/dev/null
@@ -1056,7 +1047,7 @@ if [ "$RESTORE" == 1 ]; then
 			umount /$image
 		done
 
-                if [ "$NOEXT" == 0 ]; then
+                if [ "$EXT" == 1 ]; then
 			# Amon_RA : Check if there's an ext partition before starting to restore    		
 			if [ -e /dev/block/mmcblk1p2 ]; then
 	                    $ECHO "Restoring the ext contents."
@@ -1119,7 +1110,7 @@ if [ "$RESTORE" == 1 ]; then
                 	fi
 		fi
 
-                if [ "$NOANDROID_SECURE" == 0 ]; then
+                if [ "$ANDROID_SECURE" == 1 ]; then
 
 	                        CWD=`pwd`
 	                        cd /sdcard
@@ -1194,10 +1185,10 @@ fi
 if [ "$NODATA" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"D"
 fi
-if [ "$NOEXT" == 0 ]; then
+if [ "$EXT" == 1 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"E"
 fi
-if [ "$NOANDROID_SECURE" == 0 ]; then
+if [ "$ANDROID_SECURE" == 1 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"A"
 fi
 if [ "$NOMISC" == 0 ]; then
@@ -1222,7 +1213,7 @@ if [ "$NOSPLASH2" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"2"
 fi
 
-if [ "$NOWIMAX" == 0 ]; then
+if [ "$WIMAX" == 1 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"W"
 fi
 
@@ -1310,7 +1301,7 @@ for image in boot recovery misc wimax; do
             fi
             ;;
         wimax)
-            if [ "$NOWIMAX" == 1 ]; then
+            if [ "$WIMAX" == 0 ]; then
                 $ECHO "Dump of the wimax partition suppressed."
                 continue
             fi
@@ -1323,11 +1314,6 @@ for image in boot recovery misc wimax; do
 	    echo "boot found on $DB$BOOTBLK"
 	    DEVICEBLK=$DB$BOOTBLK
 	fi
-	
-	if [ $image = "recovery"]; then
-	    echo "recovery found on $DB$RECBLK"
-	    DEVICEBLK=$DB$RECBLK
-	fi
 	    
 	if [ $image = "misc"]; then
 		echo "misc found on $DB$MISCBLK"
@@ -1335,7 +1321,7 @@ for image in boot recovery misc wimax; do
 	fi
 		  
 	if [ $image = "wimax" ]; then
-	     echo "wimax found on $DB$WIMAXBLK"
+	     echo "wimax found on $DB$RECBLK"
 		 DEVICEBLK=$DB$WIMAXBLK
 	fi
 			
@@ -1402,7 +1388,7 @@ done
 
 # Backing up the ext partition, not really for the backup but to switch ROMS and apps at the same time.
 
-if [ "$NOEXT" == 0 ]; then
+if [ "$EXT" == 1 ]; then
     $ECHO "Storing the ext contents in the backup folder."
 
     CHECK=`mount | grep /sd-ext`
@@ -1419,7 +1405,7 @@ if [ "$NOEXT" == 0 ]; then
         CWD=`pwd`
         cd /sd-ext
         # Depending on the whether we want it compressed we do either or.
-        if [ "$YAFFSEXTASECURE" == 1 ]; then
+        if [ "$YAFFSEXTASECURE" == 0 ]; then
 	$mkyaffs2image /sd-ext $DESTDIR/ext.img
 	else
 	if [ "$COMPRESS" == 0 ]; then 
@@ -1439,12 +1425,12 @@ fi
 
 # Backing up the /sdcard/.android_secure, not really for the backup but to switch ROMS and apps at the same time.
 
-if [ "$NOANDROID_SECURE" == 0 ]; then
+if [ "$ANDROID_SECURE" == 1 ]; then
     $ECHO "Storing the /sdcard/.android_secure contents in the backup folder."      
         CWD=`pwd`
         cd /sdcard
         # Depending on the whether we want it compressed we do either or.
-        if [ "$YAFFSEXTASECURE" == 1 ]; then
+        if [ "$YAFFSEXTASECURE" == 0 ]; then
 	$mkyaffs2image /sdcard/.android_secure $DESTDIR/android_secure.img
 	else
 	if [ "$COMPRESS" == 0 ]; then 

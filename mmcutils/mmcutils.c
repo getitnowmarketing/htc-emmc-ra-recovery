@@ -107,6 +107,31 @@ mmc_partition_name (MmcPartition *mbr, unsigned int type) {
             }
             mbr->filesystem = strdup("vfat");
             break;
+#ifdef USE_LGE_DTYPES	
+	case MMC_SYSTEM_TYPE:
+	    sprintf(name,"system");
+	    mbr->name = strdup(name);
+	    mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_USERDATA_TYPE:
+	    sprintf(name,"userdata");
+	    mbr->name = strdup(name);
+	    mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_CACHE_TYPE:
+	    sprintf(name,"cache");
+	    mbr->name = strdup(name);
+	    mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_PERSIST_TYPE:
+	    sprintf(name,"persist");
+	    mbr->name = strdup(name);
+	    break;
+#endif
+
+
+
+
     };
 }
 

@@ -47,11 +47,29 @@
 #define BINARY_IN_TABLE_SIZE      (16 * 512)
 #define MAX_FILE_ENTRIES          20
 
+#ifndef USE_LGE_DTYPES
+
 #define MMC_BOOT_TYPE 0x48
 #define MMC_SYSTEM_TYPE 0x82
 #define MMC_USERDATA_TYPE 0x83
 #define MMC_RECOVERY_TYPE 0x71
 #define MMC_MISC_TYPE 0x76
+
+
+#endif
+
+#ifdef USE_LGE_DTYPES
+
+#define MMC_BOOT_TYPE 0x48
+#define MMC_CACHE_TYPE 0x76
+#define MMC_SYSTEM_TYPE 0x78
+#define MMC_USERDATA_TYPE 0x79
+#define MMC_RECOVERY_TYPE 0x60
+#define MMC_MISC_TYPE 0x77
+#define MMC_XCALBACKUP_TYPE 0x6E
+#define MMC_PERSIST_TYPE 0x75 
+
+#endif
 
 /* HTC VIVOW dtypes:
 #define MMC_HBOOT_TYPE 0x47

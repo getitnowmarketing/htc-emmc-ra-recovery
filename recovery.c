@@ -1909,13 +1909,19 @@ show_menu_partition()
 #define ITEM_PART_SD       1
 #define ITEM_PART_REP      2
 #define ITEM_PART_EXT3     3
+
+#ifndef KERNEL_NO_EXT4
+
 #define ITEM_PART_EXT4     4
 
+#endif
     static char* items[] = { "- Return",
 			     "- Partition SD",
 			     "- Repair SD:ext",
 			     "- SD:ext2 to ext3",
+#ifndef KERNEL_NO_EXT4
                              "- SD:ext3 to ext4",
+#endif
                              NULL };
 
     ui_start_menu(headers, items);
@@ -2053,7 +2059,7 @@ show_menu_partition()
 				   "\nExt upgrade complete!\n\n",
 				   "\nExt upgrade aborted!\n\n");
 			break;
-
+#ifndef KERNEL_NO_EXT4
 		case ITEM_PART_EXT4:
 			run_script("\nUpgrade ext3 to ext4",
 				   "\nUpgrading ext3 to ext4 : ",
@@ -2063,7 +2069,7 @@ show_menu_partition()
 				   "\nExt upgrade complete!\n\n",
 				   "\nExt upgrade aborted!\n\n");
 			break;
-           
+#endif           
             }
 
             // if we didn't return from this function to reboot, show
@@ -2418,28 +2424,43 @@ show_menu_ext4_data()
 			       NULL };
 
 // these constants correspond to elements of the items[] list.
+#ifndef KERNEL_NO_EXT4
+
 #define ITEM_EXT4_EXIT         0
 #define ITEM_EXT4_CHK          1
 #define ITEM_EXT4_FORMEXT4     2
-#define ITEM_EXT4_FORMEXT3     3
-#define ITEM_EXT4_SYSEXT3      4
-#define ITEM_EXT4_DATAEXT3     5
-#define ITEM_EXT4_CACEXT3      6
-#define ITEM_EXT4_SYSEXT4      7
-#define ITEM_EXT4_DATAEXT4     8
-#define ITEM_EXT4_CACEXT4      9
+#define ITEM_EXT4_SYSEXT4      3
+#define ITEM_EXT4_DATAEXT4     4
+#define ITEM_EXT4_CACEXT4      5
+#define ITEM_EXT4_FORMEXT3     6
+#define ITEM_EXT4_SYSEXT3      7
+#define ITEM_EXT4_DATAEXT3     8
+#define ITEM_EXT4_CACEXT3      9
+
+#else 
+
+#define ITEM_EXT4_EXIT         0
+#define ITEM_EXT4_CHK          1
+#define ITEM_EXT4_FORMEXT3     2
+#define ITEM_EXT4_SYSEXT3      3
+#define ITEM_EXT4_DATAEXT3     4
+#define ITEM_EXT4_CACEXT3      5
+
+#endif
 
     static char* items[] = { "- Return",
 			     "- Check FS format",
-			     "- Upgrade all to ext4",
+#ifndef KERNEL_NO_EXT4
+   			     "- Upgrade all to ext4",
+			     "- Upgrade system ext4",
+			     "- Upgrade data ext4",
+			     "- Upgrade cache ext4", 
+#endif
 			     "- Format all to ext3",
 			     "- Restore system ext3",
 			     "- Restore data ext3",
 			     "- Restore cache ext3",
-			     "- Upgrade system ext4",
-			     "- Upgrade data ext4",
-			     "- Upgrade cache ext4",
-                              NULL };
+			NULL };
 
 ui_start_menu(headers, items);
     int selected = 0;
@@ -2485,6 +2506,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_CHK:
 				check_fs();
 			break;
+#ifndef KERNEL_NO_EXT4
 	
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
@@ -2506,6 +2528,64 @@ ui_start_menu(headers, items);
 				
 			break;
 
+		case ITEM_EXT4_SYSEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade system to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_sysupgext4 = ui_wait_key();
+			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
+    				if (action_confirm_sysupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("SYSTEM:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_DATAEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade data to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_dataupgext4 = ui_wait_key();
+				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
+    				if (action_confirm_dataupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("DATA:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_CACEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade cache to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_cacupgext4 = ui_wait_key();
+			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
+    				if (action_confirm_cacupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("CACHE:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;		
+#endif
+		
 		case ITEM_EXT4_FORMEXT3:
                         ui_clear_key_queue();
 			ui_print("\nReformat /data, /cache & /system to ext3?");
@@ -2588,62 +2668,7 @@ ui_start_menu(headers, items);
 			
 				break;	
 
-		case ITEM_EXT4_SYSEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade system to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_sysupgext4 = ui_wait_key();
-			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
-    				if (action_confirm_sysupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("SYSTEM:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;	
-
-		case ITEM_EXT4_DATAEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade data to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_dataupgext4 = ui_wait_key();
-				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
-    				if (action_confirm_dataupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("DATA:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;	
-
-		case ITEM_EXT4_CACEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade cache to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_cacupgext4 = ui_wait_key();
-			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
-    				if (action_confirm_cacupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("CACHE:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;		
+		
 
 	        
             }
@@ -2678,13 +2703,13 @@ show_menu_usb()
 #define ITEM_USB_EXIT 0
 #define ITEM_USB_SD 1
 #ifdef HAS_INTERNAL_SD
-#define ITEM_USB_INTERNAL  2
+//#define ITEM_USB_INTERNAL  2
 #endif
 
     static char* items[] = { "- Return",
 			     "- USB-MS Toggle SDCard",
 #ifdef HAS_INTERNAL_SD
-			     "- USB-MS Toggle Internal_sd",
+//			     "- USB-MS Toggle Internal_sd",
 #endif
                              	NULL };
 
@@ -2733,9 +2758,9 @@ show_menu_usb()
 			break;
 		
 #ifdef HAS_INTERNAL_SD
-		case ITEM_USB_INTERNAL:
-			usb_toggle_internal();
-			break;
+//		case ITEM_USB_INTERNAL:
+//			usb_toggle_internal();
+//			break;
 #endif	
 			}
 // if we didn't return from this function to reboot, show
@@ -2771,9 +2796,9 @@ show_menu_developer()
 #define ITEM_DEV_EXT_TOGGLE 4
 #define ITEM_DEV_RB_BOOT 5
 #define ITEM_DEV_RB_REC 6
-/* This is for porting test
-#define ITEM_DEV_ROOT_TEST 7
-*/
+/* This is for porting test */
+//#define ITEM_DEV_ROOT_TEST 7
+
     static char* items[] = { "- Return",
 			     "- Make and flash boot from zimage",
 			     "- Install su & superuser",
@@ -2781,9 +2806,8 @@ show_menu_developer()
 			     "- Toggle full format ext3 ext4",
 			     "- Reboot to bootloader",
 			     "- Reboot recovery",
-			    /* Porting Test
-			     "- Root test",
-			    */			     	
+			 //    Porting Test
+			  // "- Roots test",    	
                              	NULL };
 
     ui_start_menu(headers, items);
@@ -2887,7 +2911,8 @@ show_menu_developer()
 		case ITEM_DEV_RB_BOOT:
 				rb_bootloader();
 			break;
-/* Porting Test
+// Porting Test
+/*
 		case ITEM_DEV_ROOT_TEST:
 				display_roots("BOOT:");
 				display_roots("SYSTEM:");
@@ -2948,7 +2973,11 @@ prompt_and_wait()
                              "- Partition sdcard",
                              "- Mounts",
 			     "- Other",
+#ifndef KERNEL_NO_EXT4
                              "- Format data,system,cache Ext4 | Ext3",
+#else 
+			     "- Format data,system,cache Ext3",
+#endif
 			     "- Developer menu",
 			     "- Power off",
                              NULL };
