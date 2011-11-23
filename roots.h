@@ -72,4 +72,6 @@ const RootInfo *get_device_info(const char *root);
 
 void set_root_table();
 
+int get_device_index(const char *root, char *device);
+
 #endif  // RECOVERY_ROOTS_H_

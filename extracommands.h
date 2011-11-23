@@ -107,6 +107,10 @@ format_raw_partition(const char* root);
 int
 dump_device(const char *root);
 
+void create_fstab();
+
+void write_fstab_root(const char *root_path, FILE *file);
+
 
 
 

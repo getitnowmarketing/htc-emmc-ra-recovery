@@ -825,6 +825,45 @@ int format_raw_partition(const char* root)
 	}
 }
 	
+void write_fstab_root(const char *root_path, FILE *file)
+{
+    const RootInfo* info = get_device_info(root_path);
+    if (info == NULL) {
+        LOGW("Unable to get root info for %s during fstab generation!\n", root_path);
+        return;
+    }
+    char device[PATH_MAX];
+    int ret = get_device_index(root_path, device);
+    if (ret == 0)
+    {
+        fprintf(file, "%s ", device);
+	fprintf(file, "%s ", info->mount_point);
+    	fprintf(file, "%s %s\n", info->filesystem, info->filesystem_options == NULL ? "rw" : info->filesystem_options);
+    }
+    else
+    {
+        LOGW("Error in getting device for %s", root_path);
+    }
+    
+}
 
+void create_fstab()
+{
+    __system("touch /etc/mtab");
+    FILE *file = fopen("/etc/fstab", "w");
+    if (file == NULL) {
+        LOGW("Unable to create /etc/fstab!");
+        return;
+    }
+    write_fstab_root("CACHE:", file);
+    write_fstab_root("DATA:", file);
+#ifdef HAS_INTERNAL_SD 
+    write_fstab_root("INTERNALSD:", file);
+#endif
+    write_fstab_root("SYSTEM:", file);
+    write_fstab_root("SDCARD:", file);
+    write_fstab_root("SDEXT:", file);
+    fclose(file);
+}
 
 

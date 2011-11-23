@@ -535,3 +535,45 @@ const char *c;
     return NULL;
 }
 
+int get_device_index(const char *root, char *device)
+{
+	const RootInfo *info = get_root_info_for_path(root);
+    if (info == NULL) {
+		return -1;
+		}
+	
+    if (info->device == g_mtd_device) {
+        if (info->partition_name == NULL) {
+            return -1;
+        }
+        		        
+	return mtd_get_partition_device(info->partition_name, device);
+    }
+
+    if (info->device == g_mmc_device) {
+        if (info->partition_name == NULL) {
+            return -1;
+        }
+
+        mmc_scan_partitions();
+        const MmcPartition *partition;
+        partition = mmc_find_partition_by_name(info->partition_name);
+        if (partition == NULL) {
+            return -1;
+        }
+
+	strcpy(device, partition->device_index);
+	return 0;
+     }
+
+    if (info->device != g_mtd_device && info->device != g_mmc_device && info->device != NULL) {
+	strcpy(device, info->device);
+	return 0;
+    } else {
+	return -1;
+	}
+}
+
+
+	
+	

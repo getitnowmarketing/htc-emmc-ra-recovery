@@ -3077,8 +3077,10 @@ main(int argc, char **argv)
     char prop_value[PROPERTY_VALUE_MAX];
     property_get("ro.modversion", &prop_value[0], "not set");
  
-    ui_init();
     set_root_table();
+    create_fstab();
+    
+    ui_init();
     ui_print("Build : ");
     ui_print(prop_value);
     ui_print("\n");
