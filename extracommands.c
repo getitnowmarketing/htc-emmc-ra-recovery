@@ -402,18 +402,18 @@ void unpack_boot()
 	__system("unpackbootimg /tmp/mkboot/boot.img /tmp/mkboot");
 	__system("mkbootimg.sh");
 	__system("flash_image boot /tmp/mkboot/newboot.img");
-	__system("sync");
+	sync();
 }
 
 void setup_mkboot()
 {
 	ensure_root_path_mounted("SDCARD:");
-   	 __system("mkdir -p /sdcard/mkboot");
+   	__system("mkdir -p /sdcard/mkboot");
     	__system("mkdir -p /sdcard/mkboot/zImage");
     	__system("mkdir -p /sdcard/mkboot/modules");
-   	 __system("rm /sdcard/mkboot/zImage/*");
-   	 __system("rm /sdcard/mkboot/modules/*");
-    	delete_file("/tmp/mkboot");
+   	__system("rm /sdcard/mkboot/zImage/*");
+   	__system("rm /sdcard/mkboot/modules/*");
+    	__system("rm -rf /tmp/mkboot");
     	__system("mkdir -p /tmp/mkboot");
     	__system("chmod 0755 /tmp/mkboot/");
 }
@@ -477,8 +477,8 @@ void do_module()
 {
 	ensure_root_path_mounted("SYSTEM:");
 	ensure_root_path_mounted("SDCARD:");
-	delete_file("/system/lib/modules");
-	copy_file("/sdcard/mkboot/modules", "/system/lib/modules");
+	__system("rm -rf /system/lib/modules");
+        __system("cp -r /sdcard/mkboot/modules /system/lib/modules");
 	__system("chmod 0644 /system/lib/modules/*");
 	ensure_root_path_unmounted("SYSTEM:");
 	ensure_root_path_unmounted("SDCARD:");
@@ -503,7 +503,7 @@ void do_make_new_boot()
 		ui_print("Error missing /sdcard/mkboot/zImage/zImage\n\n");
 	}
 
-	delete_file("/tmp/mkboot");
+	__system("rm -rf /tmp/mkboot");
 }
 
 void install_su(int eng_su)
@@ -607,7 +607,7 @@ void rb_recovery()
 }
 
 
-/* Porting Test
+/* Porting Test */
 void display_roots(const char *root)
 {
   const RootInfo* info = get_device_info(root);
@@ -623,7 +623,7 @@ void display_roots(const char *root)
 		LOGW(" filesystem : %s device_index : %s name : %s dstatus : %d dtype : %d dfirstsec : %d dsize : %d \n\n", partition->filesystem, partition->device_index, partition->name, partition->dstatus, partition->dtype, partition->dfirstsec, partition->dsize); 	
 	}
 }	
-*/  
+  
 
 const char* check_extfs_format(const char* root_path)
 {
