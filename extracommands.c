@@ -420,19 +420,31 @@ void unpack_boot()
 {
 	__system("unpackbootimg /tmp/mkboot/boot.img /tmp/mkboot");
 	__system("mkbootimg.sh");
+#ifdef USES_NAND_MTD
 	__system("flash_image boot /tmp/mkboot/newboot.img");
-sync();
+#else
+	char boot_device[PATH_MAX];
+	char fb_cmd[PATH_MAX];
+	property_get("ro.boot.block", boot_device, "");
+	if(!strcmp(boot_device, ""))
+    		 { 
+		  LOGE("Error getting boot device\n");
+		  return;
+		 }
+	sprintf(fb_cmd, "dd if=/tmp/mkboot/newboot.img of=%s bs=4096", boot_device);
+	__system(fb_cmd);		  
+	sync();
 }
 
 void setup_mkboot()
 {
 	ensure_root_path_mounted("SDCARD:");
-   	 __system("mkdir -p /sdcard/mkboot");
+   	__system("mkdir -p /sdcard/mkboot");
     	__system("mkdir -p /sdcard/mkboot/zImage");
     	__system("mkdir -p /sdcard/mkboot/modules");
-   	 __system("rm /sdcard/mkboot/zImage/*");
-   	 __system("rm /sdcard/mkboot/modules/*");
-    __system("rm -rf /tmp/mkboot");
+        __system("rm /sdcard/mkboot/zImage/*");
+   	__system("rm /sdcard/mkboot/modules/*");
+        __system("rm -rf /tmp/mkboot");
     	__system("mkdir -p /tmp/mkboot");
     	__system("chmod 0755 /tmp/mkboot/");
 }
