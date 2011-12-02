@@ -167,7 +167,9 @@ static void
 get_args(int *argc, char ***argv) {
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
-    //get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
+#ifdef USES_NAND_MTD
+    get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
+#endif
 
     if (boot.command[0] != 0 && boot.command[0] != 255) {
         LOGI("Boot command: %.*s\n", sizeof(boot.command), boot.command);
@@ -190,7 +192,7 @@ get_args(int *argc, char ***argv) {
             }
             LOGI("Got arguments from boot message\n");
         } else if (boot.recovery[0] != 0 && boot.recovery[0] != 255) {
-            LOGE("Bad boot message\n\"%.20s\"\n", boot.recovery);
+            LOGW("Bad boot message\n\"%.20s\"\n", boot.recovery);
         }
     }
 
@@ -222,7 +224,9 @@ get_args(int *argc, char ***argv) {
         strlcat(boot.recovery, (*argv)[i], sizeof(boot.recovery));
         strlcat(boot.recovery, "\n", sizeof(boot.recovery));
     }
- //   set_bootloader_message(&boot);
+#ifdef USES_NAND_MTD
+   set_bootloader_message(&boot);
+#endif
 }
 
 
@@ -262,12 +266,12 @@ finish_recovery(const char *send_intent)
         }
         check_and_fclose(log, LOG_FILE);
     }
-/*
+#ifdef USES_NAND_MTD
     // Reset the bootloader message to revert to a normal main system boot.
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
     set_bootloader_message(&boot);
-*/
+#endif
     // Remove the command file, so recovery won't repeat indefinitely.
     char path[PATH_MAX] = "";
     if (ensure_root_path_mounted(COMMAND_FILE) != 0 ||
@@ -321,6 +325,9 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [X] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [X] .android_secure_internalsd",
+#endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
@@ -336,6 +343,9 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [X] .android_secure_internalsd",
+#endif				
 #ifdef HAS_WIMAX		
 				"- [X] wimax",
 #endif
@@ -351,6 +361,9 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [ ] .android_secure_internalsd",
+#endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
@@ -395,7 +408,11 @@ show_menu_nandroid_restore(const char *selected_restore)
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
-#ifdef HAS_WIMAX
+#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+	    if (chosen_item < 9) {
+#elif defined (HAS_INTERNALSD)
+            if (chosen_item < 8) {
+#elif defined (HAS_WIMAX)
 			if (chosen_item < 8) {
 #else
             if (chosen_item < 7) {
@@ -406,7 +423,13 @@ show_menu_nandroid_restore(const char *selected_restore)
 	           } else {
 	               items[chosen_item]=items_in[chosen_item];
 	           }
-#ifdef HAS_WIMAX
+#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+			} else if (chosen_item == 10) {
+		return;
+#elif defined (HAS_INTERNALSD)
+			} else if (chosen_item == 9) {
+		return; 
+#elif defined (HAS_WIMAX)
 			} else if (chosen_item == 9) {
 		return; 
 #else
@@ -436,6 +459,9 @@ show_menu_nandroid_restore(const char *selected_restore)
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
 
+#ifdef HAS_INTERNALSD		
+				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
+#endif
                 	        
 		i++;	
 		}
@@ -1189,6 +1215,9 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [ ] .android_secure_internalsd",
+#endif
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
@@ -1204,6 +1233,9 @@ show_menu_nandroid()
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [X] .android_secure_internalsd",
+#endif				
 #ifdef HAS_WIMAX		
 				"- [X] wimax",
 #endif
@@ -1219,6 +1251,9 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
+#ifdef HAS_INTERNALSD
+				"- [ ] .android_secure_internalsd",
+#endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
@@ -1261,7 +1296,11 @@ show_menu_nandroid()
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
-#ifdef HAS_WIMAX
+#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+	    if (chosen_item < 9) {
+#elif defined (HAS_INTERNALSD)
+            if (chosen_item < 8) {
+#elif defined (HAS_WIMAX)
 			if (chosen_item < 8) {
 #else
             if (chosen_item < 7) {
@@ -1272,7 +1311,13 @@ show_menu_nandroid()
 	           } else {
 	               items[chosen_item]=items_in[chosen_item];
 	           }
-#ifdef HAS_WIMAX
+#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+			} else if (chosen_item == 10) {
+		return;
+#elif defined (HAS_INTERNALSD)
+			} else if (chosen_item == 9) {
+		return; 
+#elif defined (HAS_WIMAX)
 			} else if (chosen_item == 9) {
 		return; 
 #else
@@ -1299,6 +1344,10 @@ show_menu_nandroid()
 				if (strcmp( items[i], "- [ ] cache") == 0) strcat(nandroid_command, " --nocache");
 #ifdef HAS_WIMAX		
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
+#endif
+
+#ifdef HAS_INTERNALSD		
+				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
 #endif
                 	        
 		i++;	
@@ -1459,7 +1508,13 @@ show_menu_wipe()
 #define ITEM_WIPE_BAT      9
 #define ITEM_WIPE_ROT      10
 #define ITEM_WIPE_SDCARD   11
-#ifdef HAS_INTERNAL_SD
+
+#if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD)
+#define ITEM_WIPE_INTERNAL 12
+#define ITEM_WIPE EXT_TOGGLE 13
+#elif !defined (USES_NAND_MTD)
+#define ITEM_WIPE_EXT_TOGGLE 12
+#elif defined (HAS_INTERNAL_SD)
 #define ITEM_WIPE_INTERNAL 12
 #endif
 
@@ -1475,7 +1530,12 @@ show_menu_wipe()
                              "- Wipe battery stats",
                              "- Wipe rotate settings",
 			     "- Wipe Sdcard",
-#ifdef HAS_INTERNAL_SD
+#if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD)
+			     "- Wipe Internal_sd",
+			     "- Toggle Ext Full Wipe",
+#elif !defined (USES_NAND_MTD)
+			     "- Toggle Ext Full Wipe",
+#elif defined (HAS_INTERNAL_SD)
 			     "- Wipe Internal_sd",
 #endif
                              NULL };
@@ -1532,8 +1592,9 @@ show_menu_wipe()
                         erase_root("SDCARD:.android_secure");
                         erase_root("CACHE:");
 
+			const RootInfo* info = get_device_info("SDEXT:");
 			struct stat st;
-        		if (0 != stat("/dev/block/mmcblk1p2", &st))
+        		if (0 != stat(info->device, &st))
 		        {
                         ui_print("Skipping format of /sd-ext.\n");
 		        } else {
@@ -1572,8 +1633,9 @@ show_menu_wipe()
                     int action_confirm_wipe_ext = device_handle_key(confirm_wipe_ext, 1);
     		    if (action_confirm_wipe_ext == SELECT_ITEM) {
                         
+			const RootInfo* info = get_device_info("SDEXT:");
 			struct stat st;
-        		if (0 != stat("/dev/block/mmcblk1p2", &st))
+        		if (0 != stat(info->device, &st))
 		        {
                         ui_print("Skipping format of /sd-ext.\n");
 		        } else {
@@ -1632,8 +1694,9 @@ show_menu_wipe()
                         ui_print("Formatting CACHE:dalvik-cache...\n");
                         format_non_mtd_device("CACHE:dalvik-cache");
 
+			const RootInfo* info = get_device_info("SDEXT:");
 			struct stat st;
-        		if (0 != stat("/dev/block/mmcblk1p2", &st))
+        		if (0 != stat(info->device, &st))
 		        {
                         ui_print("Skipping format SDEXT:dalvik-cache.\n");
 		        } else {
@@ -1749,6 +1812,11 @@ show_menu_wipe()
                     break;
 #endif
 
+#ifndef USES_NAND_MTD
+		case ITEM_WIPE_EXT_TOGGLE:
+			toggle_full_ext_format();
+			break;
+#endif
             }
 
             // if we didn't return from this function to reboot, show
@@ -1839,9 +1907,13 @@ show_menu_br()
 		case ITEM_NANDROID_BCK:
 		    ui_print("\n\n*** WARNING ***");
 		    ui_print("\nNandroid backups require minimum");
+#ifndef USES_NAND_MTD
 		    ui_print("\n700mb SDcard space and may take a few");
+#else
+		    ui_print("\n300mb SDcard space and may take a few");
+#endif
 		    ui_print("\nminutes to back up!\n\n");
-		    ui_print("\nUse Other/recoverylog2sd for errors.\n\n"); 
+		    ui_print("\nUse Other/recoverylog2sd for errors.\n"); 
 		    show_menu_nandroid();
                     break;
 
@@ -1909,13 +1981,19 @@ show_menu_partition()
 #define ITEM_PART_SD       1
 #define ITEM_PART_REP      2
 #define ITEM_PART_EXT3     3
+
+#ifndef KERNEL_NO_EXT4
+
 #define ITEM_PART_EXT4     4
 
+#endif
     static char* items[] = { "- Return",
 			     "- Partition SD",
 			     "- Repair SD:ext",
 			     "- SD:ext2 to ext3",
+#ifndef KERNEL_NO_EXT4
                              "- SD:ext3 to ext4",
+#endif
                              NULL };
 
     ui_start_menu(headers, items);
@@ -2053,7 +2131,7 @@ show_menu_partition()
 				   "\nExt upgrade complete!\n\n",
 				   "\nExt upgrade aborted!\n\n");
 			break;
-
+#ifndef KERNEL_NO_EXT4
 		case ITEM_PART_EXT4:
 			run_script("\nUpgrade ext3 to ext4",
 				   "\nUpgrading ext3 to ext4 : ",
@@ -2063,7 +2141,7 @@ show_menu_partition()
 				   "\nExt upgrade complete!\n\n",
 				   "\nExt upgrade aborted!\n\n");
 			break;
-           
+#endif           
             }
 
             // if we didn't return from this function to reboot, show
@@ -2408,6 +2486,7 @@ show_menu_mount()
 	
 }
 
+#ifndef USES_NAND_MTD
 static void
 show_menu_ext4_data()
 {
@@ -2418,28 +2497,43 @@ show_menu_ext4_data()
 			       NULL };
 
 // these constants correspond to elements of the items[] list.
+#ifndef KERNEL_NO_EXT4
+
 #define ITEM_EXT4_EXIT         0
 #define ITEM_EXT4_CHK          1
 #define ITEM_EXT4_FORMEXT4     2
-#define ITEM_EXT4_FORMEXT3     3
-#define ITEM_EXT4_SYSEXT3      4
-#define ITEM_EXT4_DATAEXT3     5
-#define ITEM_EXT4_CACEXT3      6
-#define ITEM_EXT4_SYSEXT4      7
-#define ITEM_EXT4_DATAEXT4     8
-#define ITEM_EXT4_CACEXT4      9
+#define ITEM_EXT4_SYSEXT4      3
+#define ITEM_EXT4_DATAEXT4     4
+#define ITEM_EXT4_CACEXT4      5
+#define ITEM_EXT4_FORMEXT3     6
+#define ITEM_EXT4_SYSEXT3      7
+#define ITEM_EXT4_DATAEXT3     8
+#define ITEM_EXT4_CACEXT3      9
+
+#else 
+
+#define ITEM_EXT4_EXIT         0
+#define ITEM_EXT4_CHK          1
+#define ITEM_EXT4_FORMEXT3     2
+#define ITEM_EXT4_SYSEXT3      3
+#define ITEM_EXT4_DATAEXT3     4
+#define ITEM_EXT4_CACEXT3      5
+
+#endif
 
     static char* items[] = { "- Return",
 			     "- Check FS format",
-			     "- Upgrade all to ext4",
+#ifndef KERNEL_NO_EXT4
+   			     "- Upgrade all to ext4",
+			     "- Upgrade system ext4",
+			     "- Upgrade data ext4",
+			     "- Upgrade cache ext4", 
+#endif
 			     "- Format all to ext3",
 			     "- Restore system ext3",
 			     "- Restore data ext3",
 			     "- Restore cache ext3",
-			     "- Upgrade system ext4",
-			     "- Upgrade data ext4",
-			     "- Upgrade cache ext4",
-                              NULL };
+			NULL };
 
 ui_start_menu(headers, items);
     int selected = 0;
@@ -2485,6 +2579,7 @@ ui_start_menu(headers, items);
 		case ITEM_EXT4_CHK:
 				check_fs();
 			break;
+#ifndef KERNEL_NO_EXT4
 	
 		case ITEM_EXT4_FORMEXT4:
                         ui_clear_key_queue();
@@ -2506,6 +2601,64 @@ ui_start_menu(headers, items);
 				
 			break;
 
+		case ITEM_EXT4_SYSEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade system to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_sysupgext4 = ui_wait_key();
+			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
+    				if (action_confirm_sysupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("SYSTEM:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_DATAEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade data to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_dataupgext4 = ui_wait_key();
+				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
+    				if (action_confirm_dataupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("DATA:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;	
+
+		case ITEM_EXT4_CACEXT4:
+			ui_clear_key_queue();
+			ui_print("\nUpgrade cache to ext4?");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n");
+			ui_print("\n");
+			int confirm_cacupgext4 = ui_wait_key();
+			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
+    				if (action_confirm_cacupgext4 == SELECT_ITEM) {
+				ui_print("Working ...\n");
+				upgrade_ext3_to_ext4("CACHE:");
+				ui_print("Done!\n");
+				} else {
+					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
+				}
+				if (!ui_text_visible()) return;    	
+			
+				break;		
+#endif
+		
 		case ITEM_EXT4_FORMEXT3:
                         ui_clear_key_queue();
 			ui_print("\nReformat /data, /cache & /system to ext3?");
@@ -2588,62 +2741,7 @@ ui_start_menu(headers, items);
 			
 				break;	
 
-		case ITEM_EXT4_SYSEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade system to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_sysupgext4 = ui_wait_key();
-			int action_confirm_sysupgext4 = device_handle_key(confirm_sysupgext4, 1);
-    				if (action_confirm_sysupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("SYSTEM:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading system to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;	
-
-		case ITEM_EXT4_DATAEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade data to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_dataupgext4 = ui_wait_key();
-				int action_confirm_dataupgext4 = device_handle_key(confirm_dataupgext4, 1);
-    				if (action_confirm_dataupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("DATA:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading data to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;	
-
-		case ITEM_EXT4_CACEXT4:
-			ui_clear_key_queue();
-			ui_print("\nUpgrade cache to ext4?");
-			ui_print("\nPress %s to confirm,", CONFIRM);
-		       	ui_print("\nany other key to abort.\n");
-			ui_print("\n");
-			int confirm_cacupgext4 = ui_wait_key();
-			int action_confirm_cacupgext4 = device_handle_key(confirm_cacupgext4, 1);
-    				if (action_confirm_cacupgext4 == SELECT_ITEM) {
-				ui_print("Working ...\n");
-				upgrade_ext3_to_ext4("CACHE:");
-				ui_print("Done!\n");
-				} else {
-					 ui_print("\nUpgrading cache to ext4 aborted.\n\n");
-				}
-				if (!ui_text_visible()) return;    	
-			
-				break;		
+		
 
 	        
             }
@@ -2663,7 +2761,7 @@ ui_start_menu(headers, items);
         }
     }
 }
-
+#endif // -> #ifndef USES_NAND_MTD
 
 static void
 show_menu_usb()
@@ -2768,17 +2866,15 @@ show_menu_developer()
 #define ITEM_DEV_MKBOOT 1
 #define ITEM_DEV_SU 2
 #define ITEM_DEV_SU_ENG 3
-#define ITEM_DEV_EXT_TOGGLE 4
-#define ITEM_DEV_RB_BOOT 5
-#define ITEM_DEV_RB_REC 6
+#define ITEM_DEV_RB_BOOT 4
+#define ITEM_DEV_RB_REC 5
 /* This is for porting test
-#define ITEM_DEV_ROOT_TEST 7
+#define ITEM_DEV_ROOT_TEST 6
 */
     static char* items[] = { "- Return",
 			     "- Make and flash boot from zimage",
 			     "- Install su & superuser",
 			     "- Install eng (unguarded) su",
-			     "- Toggle full format ext3 ext4",
 			     "- Reboot to bootloader",
 			     "- Reboot recovery",
 			    /* Porting Test
@@ -2825,10 +2921,7 @@ show_menu_developer()
 
 		case ITEM_DEV_EXIT:
 			return;		
-
-		case ITEM_DEV_EXT_TOGGLE:
-			toggle_full_ext_format();
-			break;
+		
 		
 		case ITEM_DEV_MKBOOT:
 			ui_clear_key_queue();
@@ -2881,10 +2974,12 @@ show_menu_developer()
 			break;
 
 		case ITEM_DEV_RB_REC:
+				finish_recovery(NULL);	
 				rb_recovery();
 			break;
 
 		case ITEM_DEV_RB_BOOT:
+				finish_recovery(NULL);
 				rb_bootloader();
 			break;
 /* Porting Test
@@ -2927,17 +3022,34 @@ prompt_and_wait()
 			       NULL };
 
 // these constants correspond to elements of the items[] list.
+#ifndef USES_NAND_MTD
+
 #define ITEM_REBOOT        0
 #define ITEM_USBTOGGLE     1
 #define ITEM_BR            2
 #define ITEM_FLASH         3
 #define ITEM_WIPE          4
 #define ITEM_PARTITION     5
-#define ITEM_MOUNT	       6
+#define ITEM_MOUNT	   6
 #define ITEM_OTHER         7
 #define ITEM_EXT4DATA      8
 #define ITEM_DEVELOPER	   9
 #define ITEM_POWEROFF      10
+
+#else
+
+#define ITEM_REBOOT        0
+#define ITEM_USBTOGGLE     1
+#define ITEM_BR            2
+#define ITEM_FLASH         3
+#define ITEM_WIPE          4
+#define ITEM_PARTITION     5
+#define ITEM_MOUNT	   6
+#define ITEM_OTHER         7
+#define ITEM_DEVELOPER	   8
+#define ITEM_POWEROFF      9
+
+#endif
 
 
     static char* items[] = { "- Reboot system now",
@@ -2948,7 +3060,13 @@ prompt_and_wait()
                              "- Partition sdcard",
                              "- Mounts",
 			     "- Other",
+#ifndef USES_NAND_MTD
+#ifndef KERNEL_NO_EXT4
                              "- Format data,system,cache Ext4 | Ext3",
+#else 
+			     "- Format data,system,cache Ext3",
+#endif
+#endif
 			     "- Developer menu",
 			     "- Power off",
                              NULL };
@@ -3017,11 +3135,11 @@ prompt_and_wait()
 		case ITEM_OTHER:
                     show_menu_other();
         	    break; 
-
+#ifndef USES_NAND_MTD
 	        case ITEM_EXT4DATA:
 			show_menu_ext4_data();
 			break;
-
+#endif
 		case ITEM_POWEROFF:
 			run_script("\nPower off phone?",
 				   "\nShutting down : ",
@@ -3065,6 +3183,23 @@ print_property(const char *key, const char *name, void *cookie)
 int
 main(int argc, char **argv)
 {
+    if (strcmp(basename(argv[0]), "recovery") != 0)
+     {
+    	if (strstr(argv[0], "setprop"))
+            return setprop_main(argc, argv);
+	if (strstr(argv[0], "getprop"))
+            return getprop_main(argc, argv);
+
+#ifdef USES_NAND_MTD
+	if (strstr(argv[0], "flash_image") != NULL)
+	    return flash_image_main(argc, argv);
+	if (strstr(argv[0], "dump_image") != NULL)
+	    return dump_image_main(argc, argv);
+	if (strstr(argv[0], "erase_image") != NULL)
+	    return erase_image_main(argc, argv);
+#endif
+     }
+
     time_t start = time(NULL);
 
     // If these fail, there's not really anywhere to complain...
@@ -3076,9 +3211,16 @@ main(int argc, char **argv)
 
     char prop_value[PROPERTY_VALUE_MAX];
     property_get("ro.modversion", &prop_value[0], "not set");
- 
+
+/* Pre recovery setup items GNM */ 
+    symlink_toolbox();
     set_root_table();
     create_fstab();
+    setprop_func();
+    set_manufacturer_icon();
+#ifdef LGE_RESET_BOOTMODE
+    check_lge_boot_mode();
+#endif
     
     ui_init();
     ui_print("Build : ");

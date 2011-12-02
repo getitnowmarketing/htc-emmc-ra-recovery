@@ -1,5 +1,7 @@
 #!/sbin/sh
 
+GETPROP="/sbin/getprop"
+
 um
 if [ $? != "0" ]; then
 	echo "Unable to unmount!"
@@ -7,7 +9,7 @@ if [ $? != "0" ]; then
 fi
 
 
-if [ -e /dev/block/mmcblk1p1 ];
+if [ -e `$GETPROP ro.sdcard.block` ];
 then
 	mount /sdcard > /dev/null 2>&1;
 	cp -f /tmp/recovery.log /sdcard/

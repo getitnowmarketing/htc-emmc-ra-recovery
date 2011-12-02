@@ -1,5 +1,7 @@
 #!/sbin/sh
 
+GETPROP="/sbin/getprop"
+
 um
 if [ $? != "0" ]; then
 	echo "Unable to unmount!"
@@ -9,9 +11,9 @@ fi
 
 case $1 in
     repair)
-	if [ -e /dev/block/mmcblk1p2 ]; then
+	if [ -e `$GETPROP ro.sd-ext.block` ]; then
 
-		e2fsck -yf /dev/block/mmcblk1p2
+		e2fsck -yf `$GETPROP ro.sd-ext.block`
 	else
 		echo "No ext partition found!"
 		exit 1
@@ -19,10 +21,10 @@ case $1 in
 	exit 0
         ;;
     ext3)
-	if [ -e /dev/block/mmcblk1p2 ]; then
+	if [ -e `$GETPROP ro.sd-ext.block` ]; then
 
-		e2fsck -yf /dev/block/mmcblk1p2
-		tune2fs -c0 -i0 -j /dev/block/mmcblk1p2
+		e2fsck -yf `$GETPROP ro.sd-ext.block`
+		tune2fs -c0 -i0 -j `$GETPROP ro.sd-ext.block`
 	else
 		echo "No ext partition found!"
 		exit 1
@@ -30,10 +32,10 @@ case $1 in
 	exit 0
 	;;
     ext4)
-	if [ -e /dev/block/mmcblk1p2 ]; then
+	if [ -e `$GETPROP ro.sd-ext.block` ]; then
 
-		tune2fs -O extents,uninit_bg,dir_index /dev/block/mmcblk1p2
-		e2fsck -fpDC0 /dev/block/mmcblk1p2
+		tune2fs -O extents,uninit_bg,dir_index `$GETPROP ro.sd-ext.block`
+		e2fsck -fpDC0 `$GETPROP ro.sd-ext.block`
 	else
 		echo "No ext partition found!"
 		exit 1

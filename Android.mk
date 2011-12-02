@@ -15,8 +15,10 @@ LOCAL_SRC_FILES := \
 	install.c \
 	roots.c \
 	ui.c \
-	verifier.c
-
+	verifier.c \
+	getprop.c \
+	setprop.c
+        
 LOCAL_SRC_FILES += test_roots.c
 
 LOCAL_MODULE := recovery
@@ -25,6 +27,17 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 RECOVERY_API_VERSION := 2
 LOCAL_CFLAGS += -DRECOVERY_API_VERSION=$(RECOVERY_API_VERSION)
+
+ifeq ($(RECOVERY_UI_KEYS),)
+LOCAL_CFLAGS += -DDEFAULT_RECOVERY_UI_KEYS
+else
+RECOVERY_UI_KEYS := $(strip $(RECOVERY_UI_KEYS))
+LOCAL_CFLAGS += -D$(RECOVERY_UI_KEYS)
+endif
+
+ifeq ($(TARGET_USES_MTD),true)
+LOCAL_CFLAGS += -DUSES_NAND_MTD
+endif
 
 ifeq ($(TARGET_HAS_WIMAX),true)
 LOCAL_CFLAGS += -DHAS_WIMAX
@@ -49,6 +62,18 @@ ifeq ($(BOARD_LDPI_RECOVERY),true)
 LOCAL_CFLAGS += -DBOARD_LDPI_RECOVERY
 endif
 
+ifeq ($(TARGET_NO_EXT4),true)
+LOCAL_CFLAGS += -DKERNEL_NO_EXT4
+endif
+
+ifeq ($(NEEDS_LGE_FACT_RESET_6),true)
+LOCAL_CFLAGS += -DLGE_RESET_BOOTMODE
+endif
+
+ifeq ($(TARGET_USES_CAF_QCOMM_MTD_RADIO),true)
+LOCAL_CFLAGS += -DUSES_QCOMM_RADIO
+endif
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.
@@ -60,7 +85,11 @@ LOCAL_SRC_FILES += default_recovery_ui.c
 
 LOCAL_STATIC_LIBRARIES := libminzip libunz libamend libmtdutils libmmcutils libmincrypt
 LOCAL_STATIC_LIBRARIES += libminui libpixelflinger_static libpng libcutils
-LOCAL_STATIC_LIBRARIES += libstdc++ libc
+LOCAL_STATIC_LIBRARIES += libstdc++ libc  #libdump_image liberase_image libflash_image
+
+ifeq ($(TARGET_USES_MTD),true)
+LOCAL_STATIC_LIBRARIES += libdump_image liberase_image libflash_image
+endif
 
 # Specify a C-includable file containing the OTA public keys.
 # This is built in config/Makefile.

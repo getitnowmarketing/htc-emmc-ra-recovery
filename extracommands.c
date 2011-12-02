@@ -171,8 +171,13 @@ int format_non_mtd_device(const char* root)
     // if this is SDEXT:, don't worry about it.
     if (0 == strcmp(root, "SDEXT:"))
     {
+		const RootInfo* info = get_device_info(root);
+		if (info == NULL) {
+        	return 0;
+    		}
+	
         struct stat st;
-        if (0 != stat("/dev/block/mmcblk1p2", &st))
+        if (0 != stat(info->device, &st))
         {
             ui_print("No app2sd partition found. Skipping format of /sd-ext.\n");
             return 0;
@@ -383,18 +388,32 @@ int dump_device(const char *root)
        	    mmc_scan_partitions();
        	    const MmcPartition *partition;
             partition = mmc_find_partition_by_name(info->partition_name);
-		if (partition == NULL) {
-			return -1;
+		if (partition != NULL) {
+					
+			static char dump[PATH_MAX];
+			sprintf(dump, "dd if=%s of=/tmp/mkboot/%s.img bs=4096", partition->device_index, info->partition_name);
+			__system(dump);
+			LOGW("dump cmd is %s\n", dump);
+			return 0;
+			
+			} else {
+
+			static char dump[PATH_MAX];
+			sprintf(dump, "dd if=%s of=/tmp/mkboot/%s.img bs=4096", info->device, info->partition_name);
+			__system(dump);
+			LOGW("dump cmd is %s\n", dump);
+			return 0;
+			}	
 		}
-	
-	static char dump[PATH_MAX];
-		sprintf(dump, "dd if=%s of=/tmp/mkboot/boot.img bs=4096", partition->device_index);
+
+	if(!strcmp (info->type, "mtd")) {
+		static char dump[PATH_MAX];
+		sprintf(dump, "dump_image %s /tmp/mkboot/%s.img", info->partition_name, info->partition_name);
 		__system(dump);
 		LOGW("dump cmd is %s\n", dump);
 		return 0;
 	}
-	
-	return -1;	
+	 return -1;	
 }
 
 void unpack_boot()
@@ -402,18 +421,18 @@ void unpack_boot()
 	__system("unpackbootimg /tmp/mkboot/boot.img /tmp/mkboot");
 	__system("mkbootimg.sh");
 	__system("flash_image boot /tmp/mkboot/newboot.img");
-	sync();
+sync();
 }
 
 void setup_mkboot()
 {
 	ensure_root_path_mounted("SDCARD:");
-   	__system("mkdir -p /sdcard/mkboot");
+   	 __system("mkdir -p /sdcard/mkboot");
     	__system("mkdir -p /sdcard/mkboot/zImage");
     	__system("mkdir -p /sdcard/mkboot/modules");
-   	__system("rm /sdcard/mkboot/zImage/*");
-   	__system("rm /sdcard/mkboot/modules/*");
-    	__system("rm -rf /tmp/mkboot");
+   	 __system("rm /sdcard/mkboot/zImage/*");
+   	 __system("rm /sdcard/mkboot/modules/*");
+    __system("rm -rf /tmp/mkboot");
     	__system("mkdir -p /tmp/mkboot");
     	__system("chmod 0755 /tmp/mkboot/");
 }
@@ -685,38 +704,23 @@ int call_format_ext(const char* root)
 	}
 
 	ensure_root_path_unmounted(root);
-
-	if (0 != ensure_root_path_unmounted(root))
-    	{
-	const RootInfo* info = get_device_info(root);
-	if (info == NULL) {
-        return -1;
-    	}	
 	
-	static char tmp1[PATH_MAX];
-	sprintf(tmp1, "/sbin/umount %s", info->mount_point);
-	__system(tmp1);
-    	}		
 		
-		if (!strcmp(fstype, "ext3")) {
-		return mmc_format_ext3(partition);
+	if (!strcmp(fstype, "ext3")) {
+	return mmc_format_ext3(partition);
 		
-		} else if (!strcmp(fstype, "ext4")) {
-		return mmc_format_ext4(partition);
+	} else if (!strcmp(fstype, "ext4")) {
+	return mmc_format_ext4(partition);
 
-		} else {
-		LOGW("Error formatting %s as %s \n" , partition->name, fstype);
-		return -1;
-		}
+	} else {
+	LOGW("Error formatting %s as %s \n" , partition->name, fstype);
+	return -1;
+      }
 
 }
 		
 int force_format_ext3(const char* root)	
-{	
-	const MmcPartition *partition = get_root_mmc_partition(root);
-	if (partition == NULL) {
-        	return -1;
-    	}		
+{		
 	const char *fstype = check_extfs_format(root);
 	if (fstype == NULL) {
 		return -1;
@@ -724,28 +728,24 @@ int force_format_ext3(const char* root)
 
 	ensure_root_path_unmounted(root);
 
-	if (0 != ensure_root_path_unmounted(root)) {
-    	
-		const RootInfo* info = get_device_info(root);
-			if (info == NULL) {
-        			return -1;
-    			}	
-	
-	static char tmp1[PATH_MAX];
-	sprintf(tmp1, "/sbin/umount %s", info->mount_point);
-	__system(tmp1);
+	const MmcPartition *partition = get_root_mmc_partition(root);
+		if (partition != NULL) {
+		
+		return mmc_format_ext3(partition);
     	}		
 
-	return mmc_format_ext3(partition);
+	const RootInfo* info = get_device_info(root);
+		if (info == NULL) {
+        	return -1;
+
+    		} else {
+
+		return format_ext3_device(info->device);
+	}	
 }
 
 int force_format_ext4(const char* root)	
 {	
-	const MmcPartition *partition = get_root_mmc_partition(root);
-		if (partition == NULL) {
-        	return -1;
-    	}		
-	
 	const char *fstype = check_extfs_format(root);
 	if (fstype == NULL) {
 		return -1;
@@ -753,27 +753,24 @@ int force_format_ext4(const char* root)
 
 	ensure_root_path_unmounted(root);
 
-	if (0 != ensure_root_path_unmounted(root)) {
-    	
+	const MmcPartition *partition = get_root_mmc_partition(root);
+		if (partition != NULL) {
+		
+		return mmc_format_ext4(partition);
+    	}		
+
 	const RootInfo* info = get_device_info(root);
 		if (info == NULL) {
         	return -1;
-    	}	
-	
-	static char tmp1[PATH_MAX];
-	sprintf(tmp1, "/sbin/umount %s", info->mount_point);
-	__system(tmp1);
-    	}		
 
-	return mmc_format_ext4(partition);
+    		} else {
+
+		return format_ext4_device(info->device);
+	}			
 }
 
 int upgrade_ext3_to_ext4(const char* root)
 {
-	const MmcPartition *partition = get_root_mmc_partition(root);
-		if (partition == NULL) {
-        	return -1;
-    	}		
 	const char *fstype = check_extfs_format(root);
 		if (fstype == NULL) {
 		return -1;
@@ -781,29 +778,35 @@ int upgrade_ext3_to_ext4(const char* root)
 
 	ensure_root_path_unmounted(root);
 
-	if (0 != ensure_root_path_unmounted(root)) {
-    	
+	const MmcPartition *partition = get_root_mmc_partition(root);
+		if (partition != NULL) {
+        	
+			if (!strcmp(fstype, "ext3")) {
+			return mmc_upgrade_ext3(partition);
+		
+			} else {
+
+			ui_print("%s is already ext4\n", partition->name);
+			return -1;
+
+			}
+		}
+
 	const RootInfo* info = get_device_info(root);
 		if (info == NULL) {
         	return -1;
-    	}	
-	
-	static char tmp1[PATH_MAX];
-	sprintf(tmp1, "/sbin/umount %s", info->mount_point);
-	__system(tmp1);
-    	}		
-	
-	if (!strcmp(fstype, "ext3")) {
-		return mmc_upgrade_ext3(partition);
+    		}
+
+		if (!strcmp(fstype, "ext3")) {
+		return device_upgrade_ext3(info->device);
 		
-	} else if (!strcmp(fstype, "ext4")) {
-		ui_print("%s is already ext4\n", partition->name);
+		} else {
+
+		ui_print("%s is already ext4\n", info->name);
 		return -1;
 
-	} else {
-		LOGW("Error upgrading %s as ext4 \n" , partition->name);
-		return -1;
-		}
+	     }
+	
 }	
 
 int format_raw_partition(const char* root)
@@ -866,4 +869,232 @@ void create_fstab()
     fclose(file);
 }
 
+void set_nandroid_prop(const char *root_path)
+{
 
+    const RootInfo* info = get_device_info(root_path);
+
+    if (info == NULL) {
+        LOGW("Unable to get root info for %s setprop nandroid generation!\n", root_path);
+        return;
+    }
+    char device[PATH_MAX];
+    int ret = get_device_index(root_path, device);
+    
+    if (ret == 0)
+    {
+	char propset[PATH_MAX];
+	char name[PATH_MAX];
+	char tmp[PATH_MAX];
+	strcpy(name, info->partition_name);
+	sprintf(propset, "ro.%s.block", name);
+	sprintf(tmp, "setprop %s %s", propset, device);
+	__system(tmp);
+     }
+     else
+     {
+	LOGW("Error in getting device to setprop for %s", root_path);
+     }	
+}
+		
+void setprop_func()
+{
+	set_nandroid_prop("BOOT:");
+	set_nandroid_prop("RECOVERY:");
+	set_nandroid_prop("MISC:");
+	set_nandroid_prop("SDCARD:");
+	set_nandroid_prop("SDEXT:");
+#ifdef HAS_INTERNAL_SD 
+	set_nandroid_prop("INTERNALSD:");
+#endif
+	detect_ums_path();
+}	
+
+int format_ext_device(const char* root)
+{
+	const RootInfo* info = get_device_info(root);
+	if (info == NULL) {
+        return -1;
+    	}
+
+	const char *fstype = check_extfs_format(root);
+		if (fstype == NULL) {
+		return -1;
+	}
+
+	ensure_root_path_unmounted(root);
+
+	if (!strcmp(fstype, "ext3")) {
+		return format_ext3_device(info->device);
+	}
+
+	if (!strcmp(fstype, "ext4")) {
+		return format_ext4_device(info->device);
+	}
+
+	return -1;
+}
+
+int detect_ums_path()
+{
+	
+#define USB_FUNC_PATH "/sys/devices/platform/usb_mass_storage/lun0/file"
+#define USB_GADGET_PATH "/sys/devices/platform/msm_hsusb/gadget/lun0/file"
+
+	char tmp[PATH_MAX];
+	struct stat st;
+	if (0 == stat(USB_FUNC_PATH, &st)) {
+		//LOGW("UMS path detected as %s\n", USB_FUNC_PATH);
+		sprintf(tmp,"setprop ro.ums.path %s", USB_FUNC_PATH);
+		__system(tmp);
+		return 0;
+		}	
+	if (0 == stat(USB_GADGET_PATH, &st)) {
+		//LOGW("UMS path detected as %s\n", USB_GADGET_PATH);
+		sprintf(tmp,"setprop ro.ums.path %s", USB_GADGET_PATH);
+		__system(tmp);
+		return 0;
+		}	
+	
+	LOGW("Unable to determine ums path\n");
+	return -1;
+}
+
+int symlink_toolbox()
+{
+	__system("ln -s /sbin/recovery /sbin/getprop");
+	__system("ln -s /sbin/recovery /sbin/setprop");
+
+#ifdef USES_NAND_MTD
+	__system("ln -s /sbin/recovery /sbin/flash_image");
+	__system("ln -s /sbin/recovery /sbin/dump_image");
+	__system("ln -s /sbin/recovery /sbin/erase_image");
+#endif	
+return 0;
+}
+
+
+int lge_fact_reset_checked = 0;
+
+int lge_direct_emmc_access_write(char *boot_mode)
+{
+	/* using lge kernel api as in lge_emmc_direct_access.c */
+ 	FILE * ldeaw = fopen("/sys/module/lge_emmc_direct_access/parameters/write_block","r+");
+
+	if (ldeaw != NULL) {
+		fputs (boot_mode,ldeaw);
+		fclose(ldeaw);
+		LOGW("LGE_FACT_RESET_6 set\n\n");
+		return 0;
+		
+	} else {
+		fclose(ldeaw);
+		return -1;
+	}
+}
+
+
+int lge_direct_emmc_access_read()
+{
+	char read_lge[2];
+
+	FILE * ldear = fopen("/sys/module/lge_emmc_direct_access/parameters/read_block","r");
+
+	if (ldear != NULL) {
+		fgets(read_lge, 2, ldear);
+    		fclose(ldear);
+	} else {
+		fclose(ldear);
+		return -1;
+	}
+	if (!strcmp(read_lge, "3")) {
+		LOGW("LGE FACT_RESET_%s detected\n", read_lge);
+		lge_direct_emmc_access_write("6");
+		ui_print("LGE_FACT_RESET_6 set\n\n");
+	} else {
+		LOGW("LGE FACT_RESET_%s detected ...ignoring\n", read_lge);
+	}
+	
+	lge_fact_reset_checked = !lge_fact_reset_checked;
+	return 0;
+}
+
+int lge_direct_mtd_access_write(char *boot_mode)
+{
+	/* using lge kernel api as in lge_mtd_direct_access.c */
+ 	FILE * ldmaw = fopen("/sys/module/lge_mtd_direct_access/parameters/write_block","r+");
+
+	if (ldmaw != NULL) {
+		fputs (boot_mode,ldmaw);
+		fclose(ldmaw);
+		LOGW("LGE_FACT_RESET_6 set\n\n");
+		return 0;
+	} else {
+		fclose(ldmaw);
+		return -1;
+	}
+}
+
+
+int lge_direct_mtd_access_read()
+{
+	char read_lge[2];
+
+	FILE * ldmar = fopen("/sys/module/lge_mtd_direct_access/parameters/read_block","r");
+
+	if (ldmar != NULL) {
+		fgets(read_lge, 2, ldmar);
+    		fclose(ldmar);
+	} else {
+		return -1;
+	}
+	
+	if (!strcmp(read_lge, "3")) {
+		LOGW("LGE FACT_RESET_%s detected\n", read_lge);
+		lge_direct_mtd_access_write("6");
+		ui_print("LGE_FACT_RESET_6 set\n\n");
+	} else {
+		LOGW("LGE FACT_RESET_%s detected ...ignoring\n", read_lge);
+	}
+		
+	lge_fact_reset_checked = !lge_fact_reset_checked;
+	return 0;
+}
+
+void check_lge_boot_mode()
+{
+	if (!lge_fact_reset_checked) {
+		char emmc[64];
+    		property_get("ro.emmc", emmc, "");
+
+    		if(!strcmp(emmc, "1"))
+    		 {
+		    lge_direct_emmc_access_read();
+		 }
+		else
+		 {
+		    lge_direct_mtd_access_read();
+		 }
+	}
+}
+
+int manufacturer_icon_set = 0;
+
+void set_manufacturer_icon()
+{
+     if (!manufacturer_icon_set) {
+	char manufacturer[64];
+    	property_get("ro.product.manufacturer", manufacturer, "");
+	if(!strcmp(manufacturer, "HTC"))
+    		 {
+		    __system("rm /res/images/icon_error.png");
+		    __system("cp /res/images/icon_error_htc.png /res/images/icon_error.png");
+		 }
+		else if (!strcmp(manufacturer, "LGE"))
+		 {
+		    __system("rm /res/images/icon_error.png");
+		    __system("cp /res/images/icon_error_lg.png /res/images/icon_error.png");
+		 }
+		manufacturer_icon_set = !manufacturer_icon_set;
+	}
+}

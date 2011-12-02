@@ -194,7 +194,11 @@ ValidateSizeArg() {
 CalculatePartitions() {
 
 	# get size of sdcard in MB & do some math
+if [ "$DETECTEMMC" == "1" ]; then
 	SDSIZEMB=`"$CMPARTED" "$SDPATH" unit MB print | grep mmcblk1 | cut -d" " -f3`
+else
+	SDSIZEMB=`"$CMPARTED" "$SDPATH" unit MB print | grep mmcblk0 | cut -d" " -f3`
+fi	
 	SDSIZE=${SDSIZEMB%MB}
 	[ -n "$FATSIZE" ] || FATSIZE=$(($SDSIZE - $EXTSIZE - $SWAPSIZE))
 	EXTEND=$(($FATSIZE + $EXTSIZE))
@@ -549,6 +553,11 @@ TTISOK=
 TTISLOOP=
 TTISMSDOS=
 
+GETPROP="/sbin/getprop"
+DETECTEMMC=`"$GETPROP" ro.emmc`
+
+if [ "$DETECTEMMC" == "1" ]; then 
+
 SDSIZE=
 SDSIZEMB=
 SDPATH="/dev/block/mmcblk1"
@@ -566,6 +575,48 @@ SWAPSIZE=32
 SWAPTYPE="linux-swap"
 SWAPPATH="/dev/block/mmcblk1p3"
 SWAPEND=
+
+elif [ `$GETPROP ro.product.model` = "ADR6300" ]; then 
+
+SDSIZE=
+SDSIZEMB=
+SDPATH="/dev/block/mmcblk1"
+
+FATSIZE=
+FATTYPE="fat32"
+FATPATH="/dev/block/mmcblk1p1"
+
+EXTSIZE=512
+EXTFS="ext2"
+EXTPATH="/dev/block/mmcblk1p2"
+EXTEND=
+
+SWAPSIZE=32
+SWAPTYPE="linux-swap"
+SWAPPATH="/dev/block/mmcblk1p3"
+SWAPEND=
+
+else
+
+SDSIZE=
+SDSIZEMB=
+SDPATH="/dev/block/mmcblk0"
+
+FATSIZE=
+FATTYPE="fat32"
+FATPATH="/dev/block/mmcblk0p1"
+
+EXTSIZE=512
+EXTFS="ext2"
+EXTPATH="/dev/block/mmcblk0p2"
+EXTEND=
+
+SWAPSIZE=32
+SWAPTYPE="linux-swap"
+SWAPPATH="/dev/block/mmcblk0p3"
+SWAPEND=
+
+fi
 
 CMPARTED="/sbin/parted"
 CMTUNE2FS="/sbin/tune2fs"

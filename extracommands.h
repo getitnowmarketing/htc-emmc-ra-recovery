@@ -107,10 +107,26 @@ format_raw_partition(const char* root);
 int
 dump_device(const char *root);
 
-void create_fstab();
+void
+create_fstab();
 
-void write_fstab_root(const char *root_path, FILE *file);
+void
+write_fstab_root(const char *root_path, FILE *file);
 
+int
+format_ext_device(const char* root);
+
+int
+detect_ums_path();
+
+int
+symlink_toolbox();
+
+void
+check_lge_boot_mode();
+
+void
+set_manufacturer_icon();
 
 
 

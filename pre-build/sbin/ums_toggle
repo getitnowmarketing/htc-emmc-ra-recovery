@@ -1,23 +1,53 @@
 #!/sbin/sh
 
+GETPROP="/sbin/getprop"
+
 um
 if [ $? != "0" ]; then
 	echo "Unable to unmount!"
 	exit 1
 fi
 
+if [ `$GETPROP ro.ums.path` == "" ]; then
+	echo "Error detecting ums path!"
+	exit 1
+fi
+
 case $1 in
     on)
-	echo /dev/block/mmcblk1p1 > /sys/devices/platform/usb_mass_storage/lun0/file
+	if [ `$GETPROP ro.product.board` == "C771" ]; then
+		echo 02ee > /sys/module/android/parameters/product_id
+	fi	
+
+	echo `$GETPROP ro.sdcard.block` > `$GETPROP ro.ums.path`
+	
+	if [ `$GETPROP ro.product.board` == "bryce" ]; then
+		echo mass_storage > /sys/module/android/parameters/usb_mode
+	fi
+	
 	echo "USB Mass Storage enabled"
         ;;
     off)
 	sync
-	echo "" > /sys/devices/platform/usb_mass_storage/lun0/file
+	echo "" > `$GETPROP ro.ums.path`
+
+	if [ `$GETPROP ro.product.board` == "bryce" ]; then
+		echo internet_connection > /sys/module/android/parameters/usb_mode
+	fi
+
+	if [ `$GETPROP ro.product.board` == "C771" ]; then
+		echo 02ef > /sys/module/android/parameters/product_id
+	fi
+
 	echo "USB Mass Storage disabled"
 	;;
     internal)
-	echo /dev/block/mmcblk0p37 > /sys/devices/platform/usb_mass_storage/lun0/file
+	echo `$GETPROP ro.internal_sdcard.block` > `$GETPROP ro.ums.path`
+	
+	if [ `$GETPROP ro.product.board` == "bryce" ]; then
+		echo mass_storage > /sys/module/android/parameters/usb_mode
+	fi
+	
 	echo "Internal USB Mass Storage enabled"
 	;;
     --)

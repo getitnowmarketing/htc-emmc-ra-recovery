@@ -64,31 +64,36 @@ static RootInfo g_roots_mtd[] = {
     { "MISC:", g_mtd_device, NULL, "misc", NULL, g_raw, NULL, "mtd" },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
     { "RECOVERY:", g_mtd_device, NULL, "recovery", "/", g_raw, NULL, "mtd" },
-    { "SDCARD:", "/dev/block/mmcblk0p1", "/dev/block/mmcblk0", NULL, "/sdcard", "vfat", NULL, NULL },
-    { "SDEXT:", "/dev/block/mmcblk0p2", NULL, NULL, "/sd-ext", "auto", NULL, NULL },
+    { "SDCARD:", "/dev/block/mmcblk0p1", "/dev/block/mmcblk0", "sdcard", "/sdcard", "vfat", NULL, NULL },
+    { "SDEXT:", "/dev/block/mmcblk0p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, NULL },
     { "SYSTEM:", g_mtd_device, NULL, "system", "/system", "yaffs2", NULL, "mtd" },
     { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 };
 
 static RootInfo g_roots_mmc[] = {
-    { "BOOT:", g_mmc_device, NULL, "boot", NULL, g_raw, NULL, "emmc" },
-    { "CACHE:", g_mmc_device, NULL, "cache", "/cache", "auto", NULL, "emmc" },
-    { "DATA:", g_mmc_device, NULL, "userdata", "/data", "auto", NULL, "emmc" },
-    { "MISC:", g_mmc_device, NULL, "misc", NULL, g_raw, NULL, "emmc" },
+    { "BOOT:", BOOTBLK, NULL, "boot", NULL, g_raw, NULL, "emmc" },
+    { "CACHE:", CACHEBLK, NULL, "cache", "/cache", "auto", NULL, "emmc" },
+    { "DATA:", DATABLK, NULL, "userdata", "/data", "auto", NULL, "emmc" },
+    { "MISC:", MISCBLK, NULL, "misc", NULL, g_raw, NULL, "emmc" },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
-    { "RECOVERY:", g_mmc_device, NULL, "recovery", "/", g_raw, NULL, "emmc" },
-    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", NULL, "/sdcard", "vfat", NULL, NULL },
-    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, NULL, "/sd-ext", "auto", NULL, NULL },
-    { "SYSTEM:", g_mmc_device, NULL, "system", "/system", "auto", NULL, "emmc" },
+    { "RECOVERY:", RECOVERYBLK, NULL, "recovery", "/", g_raw, NULL, "emmc" },
+    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", "sdcard", "/sdcard", "vfat", NULL, NULL },
+    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, NULL },
+    { "SYSTEM:", SYSTEMBLK, NULL, "system", "/system", "auto", NULL, "emmc" },
     { "MBM:", g_mmc_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 #ifdef HAS_INTERNAL_SD 
-   { "INTERNALSD:", INTERNALSDBLK, "NULL", NULL, "/internal_sdcard", "vfat", NULL, NULL },
+   { "INTERNALSD:", INTERNALSDBLK, "NULL", "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
 #endif
 };
 
 static RootInfo *g_roots = NULL;
+
+static unsigned int NUM_ROOTS;
+
+#define NUM_ROOTS_MMC (sizeof(g_roots_mmc) / sizeof(g_roots_mmc[0]))
+#define NUM_ROOTS_MTD (sizeof(g_roots_mtd) / sizeof(g_roots_mtd[0]))
 
 void
 set_root_table()
@@ -98,16 +103,16 @@ set_root_table()
     if(!strcmp(emmc, "1"))
     {
         g_roots = g_roots_mmc;
-#define NUM_ROOTS (sizeof(g_roots_mmc) / sizeof(g_roots_mmc[0]))
+	NUM_ROOTS = NUM_ROOTS_MMC;
     }
     else
     {
         g_roots = g_roots_mtd;
-#define NUM_ROOTS (sizeof(g_roots_mtd) / sizeof(g_roots_mtd[0]))
+	NUM_ROOTS = NUM_ROOTS_MTD;
     }
 }
 
-
+//#define NUM_ROOTS (sizeof(g_roots) / sizeof(g_roots[0]))
 
 // TODO: for SDCARD:, try /dev/block/mmcblk0 if mmcblk0p1 fails
 
@@ -463,6 +468,13 @@ format_root_device(const char *root)
     }
    
 	if (full_ext_format_enabled) {
+	//Handle MMC devices not using g_mmc_device 
+	if (info->device != g_mmc_device && info->device != g_mtd_device) {
+		if (!strcmp(info->filesystem, "ext3") || !strcmp(info->filesystem, "ext4") || !strcmp(info->filesystem, "auto")) { 	
+		return format_ext_device(root);
+		}
+	}
+
 	//Handle MMC device types
    	 if(info->device == g_mmc_device) {
        	    mmc_scan_partitions();
@@ -488,23 +500,25 @@ format_root_device(const char *root)
 		call_format_ext(root);
 		return 0;
         }
+	  
     }
   }
 	/* Format raw */
+	if (!strcmp(info->type, "emmc")) {
 	if(info->device == g_mmc_device) {
        	    mmc_scan_partitions();
        	    const MmcPartition *partition;
             partition = mmc_find_partition_by_name(info->partition_name);
         if (partition == NULL) {
-            LOGE("format_root_device: can't find mmc partition \"%s\"\n",
-                    info->partition_name);
-            return -1;
-        }
+          if (!strcmp(info->partition_name, "boot")) {
+		  return format_raw_partition(root);
+       }
+	}
 	if (!strcmp(partition->name, "boot")) {
 		return format_raw_partition(root);
 	}
 }
-
+}
 
 
     return format_non_mtd_device(root);

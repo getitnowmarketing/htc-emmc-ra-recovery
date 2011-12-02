@@ -58,6 +58,7 @@ RM="busybox rm"
 WC="busybox wc"
 EXPR="busybox expr"
 DATE="busybox date"
+GETPROP="/sbin/getprop"
 
 # Initialise vars
 CODEPATH=""
@@ -186,7 +187,7 @@ fp_start()
 			DATAMOUNT=1
 		fi
 	
-		if $TEST -e /dev/block/mmcblk1p2 && $TEST $( $GREP -c " /sd-ext " "/proc/mounts" ) -eq 0; then
+		if $TEST -e `$GETPROP ro.sd-ext.block` && $TEST $( $GREP -c " /sd-ext " "/proc/mounts" ) -eq 0; then
 				$MOUNT /sd-ext > /dev/null 2>&1
 			SYSSDMOUNT=1
 		fi

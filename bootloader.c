@@ -139,10 +139,8 @@ static int get_bootloader_message_block(struct bootloader_message *out,
     mmc_scan_partitions();
     const MmcPartition *partition;
     partition = mmc_find_partition_by_name(info->partition_name);
-    if (partition == NULL) {
-    LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
-	return -1;
-    }
+    if (partition != NULL) {
+	    
     FILE* f = fopen(partition->device_index, "rb");
     if (f == NULL) {
         LOGE("Can't open %s\n(%s)\n", partition->name, strerror(errno));
@@ -160,6 +158,32 @@ static int get_bootloader_message_block(struct bootloader_message *out,
     }
     memcpy(out, &temp, sizeof(temp));
     return 0;
+  } 
+   
+/* Not found in g_mmc_device so look for hard coded block in g_roots */
+    if (info->device == NULL) {
+	LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
+	return -1; 	
+        }
+
+    FILE* f = fopen(info->device, "rb");
+    if (f == NULL) {
+        LOGE("Can't open %s\n(%s)\n", info->partition_name, strerror(errno));
+        return -1;
+    }
+    struct bootloader_message temp;
+    int count = fread(&temp, sizeof(temp), 1, f);
+    if (count != 1) {
+        LOGE("Failed reading %s\n(%s)\n", info->partition_name, strerror(errno));
+        return -1;
+    }
+    if (fclose(f) != 0) {
+        LOGE("Failed closing %s\n(%s)\n", partition->name, strerror(errno));
+        return -1;
+    }
+    memcpy(out, &temp, sizeof(temp));
+    return 0;		
+
 }
 
 static int set_bootloader_message_block(const struct bootloader_message *in,
@@ -167,10 +191,8 @@ static int set_bootloader_message_block(const struct bootloader_message *in,
     mmc_scan_partitions();
     const MmcPartition *partition;
     partition = mmc_find_partition_by_name(info->partition_name);
-    if (partition == NULL) {
-    LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
-	return -1;
-    }
+    if (partition != NULL) {
+
     FILE* f = fopen(partition->device_index, "wb");
     if (f == NULL) {
         LOGE("Can't open %s\n(%s)\n", partition->name, strerror(errno));
@@ -186,6 +208,30 @@ static int set_bootloader_message_block(const struct bootloader_message *in,
         return -1;
     }
     return 0;
+  }
+
+    /* Not found in g_mmc_device so look for hard coded block in g_roots */
+    if (info->device == NULL) {
+	LOGE("Can't find mmc partition \"%s\"\n", info->partition_name);
+	return -1; 	
+        }
+
+    FILE* f = fopen(info->device, "wb");
+    if (f == NULL) {
+        LOGE("Can't open %s\n(%s)\n", info->partition_name, strerror(errno));
+        return -1;
+    }
+    int count = fwrite(in, sizeof(*in), 1, f);
+    if (count != 1) {
+        LOGE("Failed writing %s\n(%s)\n", info->partition_name, strerror(errno));
+        return -1;
+    }
+    if (fclose(f) != 0) {
+        LOGE("Failed closing %s\n(%s)\n", info->partition_name, strerror(errno));
+        return -1;
+    }
+    return 0;
+
 }
 
 /* Update Image

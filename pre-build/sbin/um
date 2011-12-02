@@ -1,8 +1,14 @@
 #!/sbin/sh
 
-echo "" > /sys/devices/platform/usb_mass_storage/lun0/file
+GETPROP="/sbin/getprop"
 
-LIST=`mount | grep "^/" | grep "type yaffs*\|vfat\|ext*" | grep "system*\|data*\|sd-ext*\|sdcard*" | cut -d\  -f 3 | sort -rn`
+if [ `$GETPROP ro.ums.path` == "" ]; then
+	echo "Error detecting ums path!"
+fi
+
+echo "" > `$GETPROP ro.ums.path`
+
+LIST=`mount | grep "^/" | grep "type yaffs*\|vfat\|ext*" | grep "system*\|data*\|sd-ext*\|sdcard*\|internal_sdcard*" | cut -d\  -f 3 | sort -rn`
 
 if [ "$LIST" != "" ]; then
 	for i in $LIST

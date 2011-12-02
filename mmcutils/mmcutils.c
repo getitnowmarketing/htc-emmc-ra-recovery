@@ -107,7 +107,29 @@ mmc_partition_name (MmcPartition *mbr, unsigned int type) {
             }
             mbr->filesystem = strdup("vfat");
             break;
-    };
+#ifdef USE_LGE_DTYPES
+	case MMC_SYSTEM_TYPE:
+		sprintf(name,"system");
+		mbr->name = strdup(name);
+		mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_USERDATA_TYPE:
+		sprintf(name,"userdata");
+		mbr->name = strdup(name);
+		mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_CACHE_TYPE:
+		sprintf(name,"cache");
+		mbr->name = strdup(name);
+		mbr->filesystem = strdup("ext3");
+            break;
+	case MMC_PERSIST_TYPE:
+		sprintf(name,"persist");
+		mbr->name = strdup(name);
+	   break;
+#endif
+
+	};
 }
 
 static int
@@ -353,18 +375,11 @@ int
 mmc_format_ext3 (const MmcPartition *partition) {
     char device[128];
     strcpy(device, partition->device_index);
-
-    if (partition->dsize >= 4194304) {
+    
     static char mke2fs_cmd[PATH_MAX];
-    LOGW("%s dsize is : %d\n", partition->name, partition->dsize); 
-    sprintf(mke2fs_cmd,"%s -j -q %s", MKE2FS_BIN, device);
+    sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
     __system(mke2fs_cmd);
-	} else {	
-    static char mke2fs_cmd[PATH_MAX];
-    LOGW("%s dsize is : %d\n", partition->name, partition->dsize);	
-    sprintf(mke2fs_cmd,"%s -j %s", MKE2FS_BIN, device);
-    __system(mke2fs_cmd);
-	}
+	
     static char tune2fs_cmd[PATH_MAX];
     sprintf(tune2fs_cmd,"%s -C 1 %s", TUNE2FS_BIN, device);
     __system(tune2fs_cmd);
@@ -377,21 +392,33 @@ mmc_format_ext3 (const MmcPartition *partition) {
 }
 
 int
+format_ext3_device(const char *device)
+{
+	static char mke2fs_cmd[PATH_MAX];
+    	sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    	__system(mke2fs_cmd);
+
+	static char tune2fs_cmd[PATH_MAX];
+    	sprintf(tune2fs_cmd,"%s -C 1 %s", TUNE2FS_BIN, device);
+    	__system(tune2fs_cmd);
+
+    	static char e2fsck_cmd[PATH_MAX];
+    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	__system(e2fsck_cmd);
+
+	return 0;
+}
+
+
+int
 mmc_format_ext4 (const MmcPartition *partition) {
     char device[128];
     strcpy(device, partition->device_index);
     
-    if (partition->dsize >= 4194304) {
     static char mke2fs_cmd[PATH_MAX];
-    LOGW("%s dsize is : %d\n", partition->name, partition->dsize); 
-    sprintf(mke2fs_cmd,"%s -j -q %s", MKE2FS_BIN, device);
+    sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
     __system(mke2fs_cmd);
-	} else {	
-    static char mke2fs_cmd[PATH_MAX];
-    LOGW("%s dsize is : %d\n", partition->name, partition->dsize);	
-    sprintf(mke2fs_cmd,"%s -j %s", MKE2FS_BIN, device);
-    __system(mke2fs_cmd);
-	}
+	
     static char tune2fs_cmd[PATH_MAX];
     sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
     __system(tune2fs_cmd);
@@ -401,6 +428,25 @@ mmc_format_ext4 (const MmcPartition *partition) {
     __system(e2fsck_cmd);
 
     return 0;
+}
+
+int
+format_ext4_device(const char *device)
+{
+
+	static char mke2fs_cmd[PATH_MAX];
+    	sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    	__system(mke2fs_cmd);
+	
+	static char tune2fs_cmd[PATH_MAX];
+    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    	__system(tune2fs_cmd);
+
+    	static char e2fsck_cmd[PATH_MAX];
+    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	__system(e2fsck_cmd);
+
+	return 0;
 }
 
 int
@@ -417,6 +463,20 @@ mmc_upgrade_ext3 (const MmcPartition *partition) {
     __system(e2fsck_cmd);
 
     return 0;
+}
+
+int
+device_upgrade_ext3(const char *device)
+{
+	static char tune2fs_cmd[PATH_MAX];
+    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    	__system(tune2fs_cmd);
+    
+    	static char e2fsck_cmd[PATH_MAX];
+    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	__system(e2fsck_cmd);
+
+	return 0;
 }
 
 

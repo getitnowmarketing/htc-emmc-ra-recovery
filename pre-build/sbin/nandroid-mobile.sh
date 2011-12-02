@@ -79,6 +79,8 @@
 DEVICEID=foo
 RECOVERY=foo
 DEVICEBLK=foo
+EMMCDEVICE=0
+HTCDEVICE=0
 
 SUBNAME=""
 NORECOVERY=0
@@ -92,6 +94,7 @@ NOSPLASH2=0
 NOEXT=1
 
 NOANDROID_SECURE=1
+NOANDROID_SECURE_INTERNAL=1
 NOWIMAX=1
 
 COMPRESS=0
@@ -116,6 +119,11 @@ WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
 YAFFSEXTASECURE=1
 CWMRESTORE=0
 CWMCOMPAT=0
+
+DETECTEMMC=`getprop ro.emmc`
+SDBLK=`getprop ro.sdcard.block`
+SDEXTBLK=`getprop ro.sd-ext.block`
+INTERNALSDBLK=`getprop ro.internal_sdcard.block`
 
 DEFAULTUPDATEPATH="/sdcard/download"
 
@@ -188,7 +196,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l wimax -lnosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l wimax -lnosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l android_secure_internal -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -246,6 +254,9 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
             $ECHO "-a | --android_secure      Preserve the contents of /sdcard/.android_secure along with"
+            $ECHO "                           the other partitions being backed up, to easily switch roms."
+            $ECHO ""
+	        $ECHO "--android_secure_internal  Preserve the contents of /internal_sdcard/.android_secure along with"
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
             $ECHO "-r | --restore             Will restore the last made backup which matches --subname"
@@ -405,6 +416,10 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             ;;
         --android_secure)
             NOANDROID_SECURE=0
+            shift
+            ;;
+        --android_secure_internal)
+            ANDROID_SECURE_INTERNAL=0
             shift
             ;;
         --restore)
@@ -583,6 +598,13 @@ if [ "$CWMCOMPAT" == "1" ]; then
 BACKUPPATH="/sdcard/clockworkmod/backup"
 fi
 
+if [ "$DETECTEMMC" == "1" ]; then
+EMMCDEVICE=1
+   if [ `getprop ro.product.manufacturer` = "HTC" ]; then
+   	HTCDEVICE=1
+   fi
+fi
+
 let OPS=$BACKUP
 let OPS=$OPS+$RESTORE
 let OPS=$OPS+$DELETE
@@ -719,6 +741,14 @@ if [ "$BACKUP" == 1 ]; then
 				exit 1
 			fi
 		fi
+		getprop_test=`which getprop`
+		if [ "$getprop_test" == "" ]; then
+			getprop_test=`which getprop`
+			if [ "$getprop_test" == "" ]; then
+				$ECHO "error: getprop not found in path"
+				exit 1
+			fi
+		fi
 fi
 
 if [ "$RESTORE" == 1 ]; then
@@ -735,6 +765,14 @@ if [ "$RESTORE" == 1 ]; then
 			unyaffs=`which unyaffs`
 			if [ "$unyaffs" == "" ]; then
 				$ECHO "error: unyaffs not found in path"
+				exit 1
+			fi
+		fi
+		getprop_test=`which getprop`
+		if [ "$getprop_test" == "" ]; then
+			getprop_test=`which getprop`
+			if [ "$getprop_test" == "" ]; then
+				$ECHO "error: getprop not found in path"
 				exit 1
 			fi
 		fi
@@ -767,7 +805,6 @@ if [ ! "`id -u 2>/dev/null`" == "0" ]; then
 		exit 1
 	fi
 fi
-
 
 if [ "$RESTORE" == 1 ]; then
 
@@ -951,9 +988,13 @@ if [ "$RESTORE" == 1 ]; then
                     NOANDROID_SECURE=1
                     fi
 		fi
-		
 
-				# Amon_RA : If there's no wimax backup set nowimax to 1 so wimax restore doesn't start                
+		# GNM : If there's no android_secure backup set android_secure to 0 so android_secure restore doesn't start                
+		if [ `ls android_internalsd_secure* 2>/dev/null | wc -l` == 0 ]; then
+                    NOANDROID_SECURE_INTERNAL=1
+                fi
+
+		# Amon_RA : If there's no wimax backup set nowimax to 1 so wimax restore doesn't start                
                 if [ `ls wimax* 2>/dev/null | wc -l` == 0 ]; then
                     NOWIMAX=1
 				
@@ -978,8 +1019,7 @@ if [ "$RESTORE" == 1 ]; then
                         $ECHO ""
                         continue
                     fi
-					
-					if [ "$NOMISC" == "1" -a "$image" == "misc" ]; then
+		    if [ "$NOMISC" == "1" -a "$image" == "misc" ]; then
                         $ECHO ""
                         $ECHO "Not flashing misc image!"
                         $ECHO ""
@@ -987,31 +1027,56 @@ if [ "$RESTORE" == 1 ]; then
                     fi
 					
                     $ECHO "Flashing $image..."
-		    if [ $image = "boot" ]; then
+		if [ $EMMCDEVICE == "1" ]; then	
+		
+		   if [ $HTCDEVICE == "1" ]; then
+			
+		    	if [ $image = "boot" ]; then
 			DEVICEBLK=$DB$BOOTBLK
 		    	fi
 			
-	    	if [ $image = "recovery" ]; then
+			if [ $image = "recovery" ]; then
 			DEVICEBLK=$DB$RECBLK
-		  		fi
+		  	fi
 			
 			if [ $image = "wimax" ]; then
 			DEVICEBLK=$DB$WIMAXBLK
-		  		fi	
+		  	fi	
 	    	
 			if [ $image = "misc" ]; then
 			DEVICEBLK=$DB$MISCBLK
-		  		fi    			
+		  	fi    			
 				
-			# zeroing the boot & recovery prior to flashing
-			#dd if=/dev/zero of=/$DEVICEBLK
-			#echo "Zeroing $DEVICEBLK"
-			#sync
+		    else 
+			
+			if [ $image = "boot" ]; then
+			DEVICEBLK=`getprop ro.boot.block`
+			fi
+
+			if [ $image = "recovery" ]; then
+			DEVICEBLK=`getprop ro.recovery.block`
+		  	fi
+
+			if [ $image = "wimax" ]; then
+			continue
+		  	fi	
+
+			if [ $image = "misc" ]; then
+			DEVICEBLK=`getprop ro.misc.block`
+		  	fi  
+		
+		    fi			
+
 			echo "Flashing $image on $DEVICEBLK"
 			dd if=$image.img of=$DEVICEBLK $OUTPUT
 			sync
-			# GNM not using flash_image as there may be bad blocks on boot & recovery
-		    #$flash_image $image $image.img $OUTPUT
+		   	
+		else 
+			#if nand
+			$flash_image $image $image.img $OUTPUT	    
+		
+		fi 
+			
                 done
 
 		for image in data system cache; do
@@ -1058,7 +1123,7 @@ if [ "$RESTORE" == 1 ]; then
 
                 if [ "$NOEXT" == 0 ]; then
 			# Amon_RA : Check if there's an ext partition before starting to restore    		
-			if [ -e /dev/block/mmcblk1p2 ]; then
+			if [ -e $SDEXTBLK ]; then
 	                    $ECHO "Restoring the ext contents."
 	                    CWD=`pwd`
 	                    cd /
@@ -1160,6 +1225,63 @@ if [ "$RESTORE" == 1 ]; then
 		fi
 
 
+if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
+			# GNM : Check if there's an internal_sd partition before starting to restore    		
+			if [ -e `$INTERNALSDBLK` ]; then
+	                    $ECHO "Restoring the android_secure contents on internal sd."
+	                    CWD=`pwd`
+	                    cd /
+
+	                    if [ `mount | grep internal_sdcard -w | wc -l` == 0 ]; then
+	                        mount /internal_sdcard
+	                    fi
+
+	                    cd $CWD
+	                    CHECK=`mount | grep /internal_sdcard -w`
+
+	                    if [ "$CHECK" == "" ]; then
+	                        $ECHO "Warning: --android_secure on internal sd specified but unable to mount the android_secure partition."
+	                        $ECHO "Warning: your phone may be in an inconsistent state on reboot."
+	                        exit 1
+	                    else
+	                        CWD=`pwd`
+	                        cd /internal_sdcard
+	                        # Depending on whether the android_secure backup is compressed we do either or.
+	                        if  [ -e $RESTOREPATH/android_internalsd_secure.img ]; then
+				     mkdir -p /internal_sdcard/.android_secure
+				     cd .android_secure
+				     rm -rf ./* 2>/dev/null
+				     $unyaffs $RESTOREPATH/android_internalsd_secure.img 
+			       else
+				if [ -e $RESTOREPATH/android_internalsd_secure.tar ]; then 
+	                            rm -rf .android_secur* 2>/dev/null
+	                            tar -x$TARFLAGS -f $RESTOREPATH/android_emmc_secure.tar
+	                        else
+	                            if [ -e $RESTOREPATH/android_internalsd_secure.tgz ]; then
+	                                rm -rf .android_secur* 2>/dev/null
+	                                tar -x$TARFLAGS -zf $RESTOREPATH/android_emmc_secure.tgz
+	                            else
+	                                if [ -e $RESTOREPATH/android_internalsd_secure.tar.bz2 ]; then
+	                                    rm -rf .android_secur* 2>/dev/null
+	                                    tar -x$TARFLAGS -jf $RESTOREPATH/android_emmc_secure.tar.bz2
+	                                else
+	                                    $ECHO "Warning: --android_secure internal sd specified but cannot find the android_secure backup."
+	                                   # $ECHO "Warning: your phone may be in an inconsistent state on reboot."
+	                                fi
+	                            fi
+	                        fi
+			      fi
+	                        cd $CWD
+	                        sync
+	                        umount /internal_sdcard
+	
+	                    fi
+			else
+	                        # Amon_RA : Just display a warning
+				$ECHO "Warning: --android_secure specified but android_secure partition present on sdcard"
+	                        # $ECHO "Warning: your phone may be in an inconsistent state on reboot."     
+                	fi
+		fi
 		$ECHO "Restore done"
 		exit 0
 fi
@@ -1173,7 +1295,7 @@ umount /data 2>/dev/null
 umount /sdcard 2>/dev/null
 mount -o ro /system || FAIL=1
 mount -o ro /data || FAIL=2
-mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=3
+mount /sdcard || mount $SDBLK /sdcard || FAIL=3
 case $FAIL in
 	1) $ECHO "Error mounting system read-only"; umount /system /data /sdcard; exit 1;;
 	2) $ECHO "Error mounting data read-only"; umount /system /data /sdcard; exit 1;;
@@ -1199,6 +1321,9 @@ if [ "$NOEXT" == 0 ]; then
 fi
 if [ "$NOANDROID_SECURE" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"A"
+fi
+if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
+    BACKUPLEGEND=$BACKUPLEGEND"I"
 fi
 if [ "$NOMISC" == 0 ]; then
     BACKUPLEGEND=$BACKUPLEGEND"M"
@@ -1257,16 +1382,25 @@ fi
 # 3.
 $ECHO "checking free space on sdcard"
 FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
+if [ $EMMCDEVICE == "1" ]; then
 # we need about 700MB for the dump
-if [ $FREEBLOCKS -le 700000 ]; then
-	$ECHO "Error: not enough free space available on sdcard (need 700mb), aborting."
-	umount /system 2>/dev/null
-	umount /data 2>/dev/null
-	umount /sdcard 2>/dev/null
-	exit 1
+	if [ $FREEBLOCKS -le 700000 ]; then
+		$ECHO "Error: not enough free space available on sdcard (need 700mb), aborting."
+		umount /system 2>/dev/null
+		umount /data 2>/dev/null
+		umount /sdcard 2>/dev/null
+		exit 1
+	fi
+else 
+	# we need about 300MB for the dump
+	if [ $FREEBLOCKS -le 300000 ]; then
+		$ECHO "Error: not enough free space available on sdcard (need 300mb), aborting."
+		umount /system 2>/dev/null
+		umount /data 2>/dev/null
+		umount /sdcard 2>/dev/null
+		exit 1
+	fi
 fi
-
-
 
 if [ -e /dev/mtd/mtd6ro ]; then
     if [ "$NOSPLASH1" == 0 ]; then
@@ -1319,29 +1453,52 @@ for image in boot recovery misc wimax; do
     esac
 
 	# 5a
+if [ "$EMMCDEVICE" == "1" ]; then	
+		
+   if [ "$HTCDEVICE" == "1" ]; then
+
 	if [ $image = "boot" ]; then
-	    echo "boot found on $DB$BOOTBLK"
 	    DEVICEBLK=$DB$BOOTBLK
 	fi
 	
 	if [ $image = "recovery"]; then
-	    echo "recovery found on $DB$RECBLK"
 	    DEVICEBLK=$DB$RECBLK
 	fi
 	    
 	if [ $image = "misc"]; then
-		echo "misc found on $DB$MISCBLK"
-		DEVICEBLK=$DB$MISCBLK
+	    DEVICEBLK=$DB$MISCBLK
 	fi
 		  
 	if [ $image = "wimax" ]; then
-	     echo "wimax found on $DB$WIMAXBLK"
-		 DEVICEBLK=$DB$WIMAXBLK
+	    DEVICEBLK=$DB$WIMAXBLK
 	fi
-			
-	  	  			
+    
+     else
 	
+	if [ $image = "boot" ]; then
+	    DEVICEBLK=`getprop ro.boot.block`
+	fi
+
+	if [ $image = "recovery" ]; then
+	    DEVICEBLK=`getprop ro.recovery.block`
+	fi
+
+	if [ $image = "wimax" ]; then
+		continue
+	fi	
+
+	if [ $image = "misc" ]; then
+	    DEVICEBLK=`getprop ro.misc.block`
+	fi  		
+    fi
+fi	  	  			
+
+
+    if [ "$EMMCDEVICE" == "1" ]; then	
 	DEVICEMD5=`md5sum $DEVICEBLK | awk '{ print $1 }'`
+    else
+	DEVICEMD5=`$dump_image $image - | md5sum | awk '{ print $1 }'`
+    fi
 	sleep 1s
 	MD5RESULT=1
 	# 5b
@@ -1350,7 +1507,11 @@ for image in boot recovery misc wimax; do
 	while [ $MD5RESULT -eq 1 ]; do
 		let ATTEMPT=$ATTEMPT+1
 		# 5b1
+	if [ "$EMMCDEVICE" == "1" ]; then
 		dd if=/$DEVICEBLK of=/$DESTDIR/$image.img bs=4096 $OUTPUT
+	else
+		$dump_image $image $DESTDIR/$image.img $OUTPUT
+	fi
 		sync
 		# 5b3
 		echo "${DEVICEMD5}  $DESTDIR/$image.img" | md5sum -c -s - $OUTPUT
@@ -1459,6 +1620,42 @@ if [ "$NOANDROID_SECURE" == 0 ]; then
 	fi
         cd $CWD
 fi
+# Backing up the /internal_sdcard/.android_secure, not really for the backup but to switch ROMS and apps at the same time.
+
+if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
+    $ECHO "Storing the android_secure contents in the backup folder."
+
+    CHECK=`mount | grep /internal_sdcard -w`
+    if [ "$CHECK" == "" ]; then
+        mount /internal_sdcard 2>/dev/null
+    fi
+    
+    CHECK=`mount | grep /internal_sdcard -w`
+    if [ "$CHECK" == "" ]; then
+          $ECHO "Warning: --android_secure specified but unable to mount the emmc partition."
+          exit 1
+    else
+        
+        CWD=`pwd`
+        cd /internal_sdcard
+        # Depending on the whether we want it compressed we do either or.
+        if [ "$YAFFSEXTASECURE" == 1 ]; then
+	$mkyaffs2image /internal_sdcard/.android_secure $DESTDIR/android_internalsd_secure.img
+	else
+		if [ "$COMPRESS" == 0 ]; then 
+            tar -cvf $DESTDIR/android_internalsd_secure.tar .android_secur*
+        else
+            if [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
+                tar -cvjf $DESTDIR/android_internalsd_secure.tar.bz2 .android_secur*
+            else
+                tar -cvzf $DESTDIR/android_internalsd_secure.tgz .android_secur*
+            fi
+        fi
+       fi
+    fi
+	cd $CWD
+        umount /internal_sdcard
+fi
 
 # 7.
 $ECHO -n "generating md5sum file..."
@@ -1514,7 +1711,7 @@ if [ "$WEBGET" == 1 ]; then
     mount -o ro /system || FAIL=1
     # Need to write to this system to setup nameservers for the wifi
     mount -o rw /data || FAIL=2
-    mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=3
+    mount /sdcard || mount $SDBLK /sdcard || FAIL=3
 
     case $FAIL in
 	1) $ECHO "Error mounting system read-only"; umount /system /data /sdcard; exit 1;;
@@ -1762,7 +1959,7 @@ if [ "$COMPRESS" == 1 -o "$DELETE" == 1 ]; then
     FAIL=0
     # Since we are in recovery, these file-system have to be mounted
     $ECHO "Mounting /sdcard to look for backups."
-    mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=1
+    mount /sdcard || mount $SDBLK /sdcard || FAIL=1
 
     if [ "$FAIL" == 1 ]; then
 	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /sdcard; exit 1
@@ -1897,7 +2094,7 @@ if [ "$GETUPDATE" == 1 ]; then
     FAIL=0
     # Since we are in recovery, these file-system have to be mounted
     $ECHO "Mounting /sdcard to look for updates to flash."
-    mount /sdcard || mount /dev/block/mmcblk1p1 /sdcard || FAIL=1
+    mount /sdcard || mount $SDBLK /sdcard || FAIL=1
 
     if [ "$FAIL" == 1 ]; then
 	$ECHO "Error mounting /sdcard read-write, cleaning up..."; umount /system /data /sdcard; exit 1

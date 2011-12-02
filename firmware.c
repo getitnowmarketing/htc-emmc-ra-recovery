@@ -94,25 +94,29 @@ int maybe_install_firmware_update(const char *send_intent) {
         strlcat(boot.recovery, "\n", sizeof(boot.recovery));
     }
     if (set_bootloader_message(&boot)) return -1;
-
+#ifndef USE_QCOMM_RADIO
     int width = 0, height = 0, bpp = 0;
     char *busy_image = ui_copy_image(
         BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
     char *fail_image = ui_copy_image(
         BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
-
+#endif
     ui_print("Writing %s image...\n", update_type);
     if (write_update_for_bootloader(
+#ifndef USE_QCOMM_RADIO
             update_data, update_length,
-            width, height, bpp, busy_image, fail_image)) {
+	    width, height, bpp, busy_image, fail_image)) {
+#else
+	    update_data, update_length,)) {
+#endif
         LOGE("Can't write %s image\n(%s)\n", update_type, strerror(errno));
         format_root_device("CACHE:");  // Attempt to clean cache up, at least.
         return -1;
     }
-
+#ifndef USE_QCOMM_RADIO
     free(busy_image);
     free(fail_image);
-
+#endif
     /* The update image is fully written, so now we can instruct the bootloader
      * to install it.  (After doing so, it will come back here, and we will
      * wipe the cache and reboot into the system.)

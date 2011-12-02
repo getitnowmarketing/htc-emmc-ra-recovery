@@ -46,125 +46,96 @@ void die(const char *msg, ...) {
     exit(1);
 }
 
-void printUsage(char *programName) {
-	fprintf(stderr, "usage: %s [-d] partition file.img\n", programName);
-	fprintf(stderr, "options:\n");
-    fprintf(stderr, "		-d		delete the image file after a successful flash\n");
-}
-
 /* Read an image file and write it to a flash partition. */
+
 int main(int argc, char **argv) {
     const MtdPartition *ptn;
     MtdWriteContext *write;
     void *data;
     unsigned sz;
-    int i;
-    char *partitionName = NULL, *imageFile = NULL;
-    int deleteImage = 0;
 
-    if (argc < 3 || argc > 4) {
-		printUsage(argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "usage: %s partition file.img\n", argv[0]);
         return 2;
     }
 
-	for (i=1; i<argc; i++) {
-		if (!strcmp(argv[i], "-d"))
-			deleteImage = 1;
-		else if (partitionName == NULL)
-			partitionName = argv[i];
-		else
-			imageFile = argv[i];
-	}
-
-	if (partitionName == NULL || imageFile == NULL) {
-		printUsage(argv[0]);
-		return 2;
-	}
-
-
-
     if (mtd_scan_partitions() <= 0) die("error scanning partitions");
-    const MtdPartition *partition = mtd_find_partition_by_name(partitionName);
-    if (partition == NULL) die("can't find %s partition", partitionName);
+    const MtdPartition *partition = mtd_find_partition_by_name(argv[1]);
+    if (partition == NULL) die("can't find %s partition", argv[1]);
 
     // If the first part of the file matches the partition, skip writing
 
-    int fd = open(imageFile, O_RDONLY);
-    if (fd < 0) die("error opening %s", imageFile);
+    int fd = open(argv[2], O_RDONLY);
+    if (fd < 0) die("error opening %s", argv[2]);
 
     char header[HEADER_SIZE];
     int headerlen = read(fd, header, sizeof(header));
-    if (headerlen <= 0) die("error reading %s header", imageFile);
+    if (headerlen <= 0) die("error reading %s header", argv[2]);
 
     MtdReadContext *in = mtd_read_partition(partition);
     if (in == NULL) {
-        LOGW("error opening %s: %s\n", partitionName, strerror(errno));
+        LOGW("error opening %s: %s\n", argv[1], strerror(errno));
         // just assume it needs re-writing
     } else {
         char check[HEADER_SIZE];
         int checklen = mtd_read_data(in, check, sizeof(check));
         if (checklen <= 0) {
-            LOGW("error reading %s: %s\n", partitionName, strerror(errno));
+            LOGW("error reading %s: %s\n", argv[1], strerror(errno));
             // just assume it needs re-writing
         } else if (checklen == headerlen && !memcmp(header, check, headerlen)) {
             LOGI("header is the same, not flashing %s\n", argv[1]);
-            if (deleteImage)
-				unlink(imageFile);
             return 0;
         }
         mtd_read_close(in);
     }
 
     // Skip the header (we'll come back to it), write everything else
-    LOGI("flashing %s from %s\n", partitionName, imageFile);
+    LOGI("flashing %s from %s\n", argv[1], argv[2]);
 
     MtdWriteContext *out = mtd_write_partition(partition);
-    if (out == NULL) die("error writing %s", partitionName);
+    if (out == NULL) die("error writing %s", argv[1]);
 
     char buf[HEADER_SIZE];
     memset(buf, 0, headerlen);
     int wrote = mtd_write_data(out, buf, headerlen);
-    if (wrote != headerlen) die("error writing %s", partitionName);
+    if (wrote != headerlen) die("error writing %s", argv[1]);
 
     int len;
     while ((len = read(fd, buf, sizeof(buf))) > 0) {
         wrote = mtd_write_data(out, buf, len);
-        if (wrote != len) die("error writing %s", partitionName);
+        if (wrote != len) die("error writing %s", argv[1]);
     }
-    if (len < 0) die("error reading %s", imageFile);
+    if (len < 0) die("error reading %s", argv[2]);
 
-    if (mtd_write_close(out)) die("error closing %s", partitionName);
+    if (mtd_write_close(out)) die("error closing %s", argv[1]);
 
     // Now come back and write the header last
 
     out = mtd_write_partition(partition);
-    if (out == NULL) die("error re-opening %s", partitionName);
+    if (out == NULL) die("error re-opening %s", argv[1]);
 
     wrote = mtd_write_data(out, header, headerlen);
-    if (wrote != headerlen) die("error re-writing %s", partitionName);
+    if (wrote != headerlen) die("error re-writing %s", argv[1]);
 
     // Need to write a complete block, so write the rest of the first block
     size_t block_size;
     if (mtd_partition_info(partition, NULL, &block_size, NULL))
-        die("error getting %s block size", partitionName);
+        die("error getting %s block size", argv[1]);
 
     if (lseek(fd, headerlen, SEEK_SET) != headerlen)
-        die("error rewinding %s", imageFile);
+        die("error rewinding %s", argv[2]);
 
     int left = block_size - headerlen;
     while (left < 0) left += block_size;
     while (left > 0) {
         len = read(fd, buf, left > (int)sizeof(buf) ? (int)sizeof(buf) : left);
-        if (len <= 0) die("error reading %s", imageFile);
+        if (len <= 0) die("error reading %s", argv[2]);
         if (mtd_write_data(out, buf, len) != len)
-            die("error writing %s", partitionName);
+            die("error writing %s", argv[1]);
         left -= len;
     }
 
-    if (mtd_write_close(out)) die("error closing %s", partitionName);
-
-	if (deleteImage)
-		unlink(imageFile);
-
+    if (mtd_write_close(out)) die("error closing %s", argv[1]);
     return 0;
 }
+

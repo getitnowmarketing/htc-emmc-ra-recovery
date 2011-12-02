@@ -21,6 +21,31 @@
 #include "mtdutils/mtdutils.h"
 #include "mmcutils/mmcutils.h"
 #include "common.h"
+#include "define_roots.h"
+
+#ifndef BOOTBLK
+#define BOOTBLK g_mmc_device
+#endif
+
+#ifndef CACHEBLK
+#define CACHEBLK g_mmc_device
+#endif
+
+#ifndef DATABLK
+#define DATABLK g_mmc_device
+#endif
+
+#ifndef MISCBLK 
+#define MISCBLK g_mmc_device
+#endif
+
+#ifndef RECOVERYBLK
+#define RECOVERYBLK g_mmc_device
+#endif
+
+#ifndef SYSTEMBLK
+#define SYSTEMBLK g_mmc_device
+#endif
 
 /* Any of the "root_path" arguments can be paths with relative
  * components, like "SYSTEM:a/b/c".
@@ -63,15 +88,13 @@ const MmcPartition *get_root_mmc_partition(const char *root_path);
  */
 int format_root_device(const char *root);
 
-/*
-static const RootInfo *
-get_root_info_for_path(const char *root_path);
-*/
-
 const RootInfo *get_device_info(const char *root);
 
 void set_root_table();
 
 int get_device_index(const char *root, char *device);
+
+void setprop_func();
+
 
 #endif  // RECOVERY_ROOTS_H_
