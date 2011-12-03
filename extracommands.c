@@ -432,7 +432,8 @@ void unpack_boot()
 		  return;
 		 }
 	sprintf(fb_cmd, "dd if=/tmp/mkboot/newboot.img of=%s bs=4096", boot_device);
-	__system(fb_cmd);		  
+	__system(fb_cmd);
+#endif		  
 	sync();
 }
 
