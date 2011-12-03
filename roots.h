@@ -47,6 +47,10 @@
 #define SYSTEMBLK g_mmc_device
 #endif
 
+#ifndef INTERNALSDBLK2
+#define INTERNALSDBLK2 NULL
+#endif
+
 /* Any of the "root_path" arguments can be paths with relative
  * components, like "SYSTEM:a/b/c".
  */

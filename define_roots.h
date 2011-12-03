@@ -66,4 +66,9 @@
 
 #endif
 
+#ifdef PARTITION_LAYOUT_KYROS
+#define INTERNALSDBLK "/dev/block/ndda1"
+#define INTERNALSDBLK2 "/dev/block/ndda"
+#endif
+
 

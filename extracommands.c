@@ -418,7 +418,7 @@ int dump_device(const char *root)
 
 void unpack_boot()
 {
-	__system("unpackbootimg /tmp/mkboot/boot.img /tmp/mkboot");
+	__system("unpackbootimg -i /tmp/mkboot/boot.img -o /tmp/mkboot");
 	__system("mkbootimg.sh");
 #ifdef USES_NAND_MTD
 	__system("flash_image boot /tmp/mkboot/newboot.img");

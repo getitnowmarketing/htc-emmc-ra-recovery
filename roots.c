@@ -68,6 +68,9 @@ static RootInfo g_roots_mtd[] = {
     { "SDEXT:", "/dev/block/mmcblk0p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, NULL },
     { "SYSTEM:", g_mtd_device, NULL, "system", "/system", "yaffs2", NULL, "mtd" },
     { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
+#ifdef HAS_INTERNAL_SD 
+   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
+#endif    
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 };
 
@@ -84,7 +87,7 @@ static RootInfo g_roots_mmc[] = {
     { "MBM:", g_mmc_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 #ifdef HAS_INTERNAL_SD 
-   { "INTERNALSD:", INTERNALSDBLK, "NULL", "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
+   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
 #endif
 };
 
