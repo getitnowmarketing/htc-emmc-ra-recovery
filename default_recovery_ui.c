@@ -7,7 +7,7 @@
 #include "minui/minui.h"
 #endif
 
-#ifdef DEFAULT_RECOVERY_UI_KEYS
+#if defined (DEFAULT_RECOVERY_UI_KEYS) || defined (KYROS_RECOVERY_UI_KEYS)
 int device_handle_key(int key_code, int visable) {
 	if (visable) {
 		switch (key_code) {

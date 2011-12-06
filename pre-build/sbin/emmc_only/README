@@ -1,0 +1,2 @@
+These will allow flashing on emmc & nand partitions. 
+On pure nand devices these are unneeded as mtd only flash, erase, and dump image is built into recovery.

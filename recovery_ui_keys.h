@@ -63,6 +63,14 @@ extern int device_handle_key(int key, int visible);
 
 #endif
 
+#ifdef KYROS_RECOVERY_UI_KEYS
+#define CONFIRM "Search"
+#define UNCONFIRM_TXT "or press BACK to return"
+#define UPDOWNTXT "Vol Up/Down"
 
+#define RB_KEY1 	KEY_SEARCH
+#define RB_KEY2 	KEY_VOLUMEDOWN
+#define RB_KEY3 	KEY_VOLUMEUP
 
+#endif
 
