@@ -1221,6 +1221,7 @@ show_menu_nandroid()
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
+				"- [ ] compress_backup",
 				"- Perform Backup",
 				"- Return",
 		NULL};
@@ -1239,6 +1240,7 @@ show_menu_nandroid()
 #ifdef HAS_WIMAX		
 				"- [X] wimax",
 #endif
+				"- [X] compress_backup",
 				"- Perform Backup",
 				"- Return",
 		NULL};
@@ -1257,6 +1259,7 @@ show_menu_nandroid()
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
+				"- [ ] compress_backup",
 				"- Perform Backup",
 				"- Return",
                	NULL};
@@ -1297,13 +1300,13 @@ show_menu_nandroid()
             // on the screen.
             ui_end_menu();
 #if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
-	    if (chosen_item < 9) {
+	    if (chosen_item < 10) {
 #elif defined (HAS_INTERNALSD)
-            if (chosen_item < 8) {
+            if (chosen_item < 9) {
 #elif defined (HAS_WIMAX)
-			if (chosen_item < 8) {
+			if (chosen_item < 9) {
 #else
-            if (chosen_item < 7) {
+            if (chosen_item < 8) {
 #endif
 		   // Rebuild items
 		   if (items[chosen_item]==items_in[chosen_item]) {
@@ -1312,16 +1315,16 @@ show_menu_nandroid()
 	               items[chosen_item]=items_in[chosen_item];
 	           }
 #if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
-			} else if (chosen_item == 10) {
+			} else if (chosen_item == 11) {
 		return;
 #elif defined (HAS_INTERNALSD)
-			} else if (chosen_item == 9) {
+			} else if (chosen_item == 10) {
 		return; 
 #elif defined (HAS_WIMAX)
-			} else if (chosen_item == 9) {
+			} else if (chosen_item == 10) {
 		return; 
 #else
-            } else if (chosen_item == 8) {
+            } else if (chosen_item == 9) {
 		return; 
 #endif
 
@@ -1342,6 +1345,7 @@ show_menu_nandroid()
 				if (strcmp( items[i], "- [ ] data") == 0) strcat(nandroid_command, " --nodata");
 				if (strcmp( items[i], "- [ ] system") == 0) strcat(nandroid_command, " --nosystem");
 				if (strcmp( items[i], "- [ ] cache") == 0) strcat(nandroid_command, " --nocache");
+				if (strcmp( items[i], "- [X] compress_backup") == 0) strcat(nandroid_command, " -c");
 #ifdef HAS_WIMAX		
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
@@ -1915,7 +1919,8 @@ show_menu_br()
 #else
 		    ui_print("\n300mb SDcard space and may take a few");
 #endif
-		    ui_print("\nminutes to back up!\n\n");
+		    ui_print("\nminutes to back up!\n");
+		    ui_print("\nCompressed backups may take 30+ minutes!!\n\n");
 		    ui_print("\nUse Other/recoverylog2sd for errors.\n"); 
 		    show_menu_nandroid();
                     break;
