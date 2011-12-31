@@ -1509,13 +1509,16 @@ show_menu_wipe()
 #define ITEM_WIPE_ROT      10
 #define ITEM_WIPE_SDCARD   11
 
-#if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD)
+#if defined (HAS_INTERNAL_SD) && !defined (USES_NAND_MTD)
 #define ITEM_WIPE_INTERNAL 12
-#define ITEM_WIPE EXT_TOGGLE 13
-#elif !defined (USES_NAND_MTD)
+#define ITEM_WIPE_EXT_TOGGLE 13
+
+#elif !defined (USES_NAND_MTD) 
 #define ITEM_WIPE_EXT_TOGGLE 12
-#elif defined (HAS_INTERNAL_SD)
+
+#elif defined (HAS_INTERNAL_SD) 
 #define ITEM_WIPE_INTERNAL 12
+
 #endif
 
     static char* items[] = { "- Return",
