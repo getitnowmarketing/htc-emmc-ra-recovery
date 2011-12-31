@@ -74,6 +74,10 @@ ifeq ($(TARGET_USES_CAF_QCOMM_MTD_RADIO),true)
 LOCAL_CFLAGS += -DUSES_QCOMM_RADIO
 endif
 
+ifeq ($(DEBUG_MMC),true)
+LOCAL_CFLAGS += -DMMC_PART_DEBUG
+endif 
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.

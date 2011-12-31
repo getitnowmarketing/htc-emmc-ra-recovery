@@ -284,13 +284,14 @@ mmc_scan_partitions() {
      */
     for (i = 0; i < g_mmc_state.partitions_allocd; i++) {
         MmcPartition *p = &g_mmc_state.partitions[i];
-	
+
+#ifdef MMC_PART_DEBUG	
 	/* Added GNM to log out all parts to get dtypes */
-	/*
+	
 	LOGW(" Scan printf!!\n");
 	LOGW("device index : %s dtype : %d\n", p->device_index, p->dtype);         
-	*/
-
+	
+#endif
 	if (p->device_index != NULL) {
             free(p->device_index);
             p->device_index = NULL;

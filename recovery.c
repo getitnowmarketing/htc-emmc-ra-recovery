@@ -2871,18 +2871,22 @@ show_menu_developer()
 #define ITEM_DEV_SU_ENG 3
 #define ITEM_DEV_RB_BOOT 4
 #define ITEM_DEV_RB_REC 5
-/* This is for porting test
-#define ITEM_DEV_ROOT_TEST 6
-*/
+
+#ifdef MMC_PART_DEBUG
+/* This is for porting test */
+#define ITEM_DEV_MMCPART_TEST 6
+#endif
+
     static char* items[] = { "- Return",
 			     "- Make and flash boot from zimage",
 			     "- Install su & superuser",
 			     "- Install eng (unguarded) su",
 			     "- Reboot to bootloader",
 			     "- Reboot recovery",
-			    /* Porting Test
-			     "- Root test",
-			    */			     	
+#ifdef MMC_PART_DEBUG			   
+			    /* Porting Test */
+			     "- MMC partition test",
+#endif		     	
                              	NULL };
 
     ui_start_menu(headers, items);
@@ -2985,8 +2989,8 @@ show_menu_developer()
 				finish_recovery(NULL);
 				rb_bootloader();
 			break;
-/* Porting Test
-		case ITEM_DEV_ROOT_TEST:
+#ifdef MMC_PART_DEBUG
+		case ITEM_DEV_MMCPART_TEST:
 				display_roots("BOOT:");
 				display_roots("SYSTEM:");
 				display_roots("DATA:");
@@ -2995,7 +2999,7 @@ show_menu_developer()
 				display_roots("MISC:");
 				
 			break;	
-*/
+#endif
 			}
 // if we didn't return from this function to reboot, show
             // the menu again.

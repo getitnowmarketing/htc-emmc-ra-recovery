@@ -11,6 +11,10 @@ ifeq ($(LGE_MMC_TYPES),true)
 LOCAL_CFLAGS += -DUSE_LGE_DTYPES
 endif
 
+ifeq ($(DEBUG_MMC),true)
+LOCAL_CFLAGS += -DMMC_PART_DEBUG
+endif 
+
 LOCAL_MODULE := libmmcutils
 
 include $(BUILD_STATIC_LIBRARY)
