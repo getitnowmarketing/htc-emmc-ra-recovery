@@ -5,7 +5,7 @@
 #ifdef PARTITION_LAYOUT_DEFAULT
 
 /* Layout for MECHA, VIVOW, LEXIKON etc */
-/* No Longer used for HTC as partitions are dynamically detected via g_mmc_device */
+/* No Longer used for HTC as single core emmc partitions are dynamically detected via g_mmc_device */
 /*
 #define BOOTBLK "/dev/block/mmcblk0p22"
 #define CACHEBLK "/dev/block/mmcblk0p27"
@@ -19,15 +19,15 @@
 #ifdef PARTITION_LAYOUT_VIGOR
 
 /* Layout for HTC VIGOR */
-/* No Longer used for HTC as partitions are dynamically detected via g_mmc_device */
-/*
+/* re-added as MMC partitions > 35 are not detected */
+
 #define BOOTBLK "/dev/block/mmcblk0p22"
 #define CACHEBLK "/dev/block/mmcblk0p36"
 #define DATABLK "/dev/block/mmcblk0p35"
 #define MISCBLK "/dev/block/mmcblk0p24"
 #define RECOVERYBLK "/dev/block/mmcblk0p23"
 #define SYSTEMBLK "/dev/block/mmcblk0p29"
-*/
+
 #define INTERNALSDBLK "/dev/block/mmcblk0p37"
 
 #endif
@@ -62,7 +62,7 @@
 
 #ifdef PARTITION_LAYOUT_LGE_BRYCE
 
-#define INTERNALSDBLK "/dev/block/mmcblk0p37"
+#define INTERNALSDBLK "/dev/block/mmcblk0p15"
 
 #endif
 

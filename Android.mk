@@ -78,6 +78,11 @@ ifeq ($(DEBUG_MMC),true)
 LOCAL_CFLAGS += -DMMC_PART_DEBUG
 endif 
 
+ifeq ($(KERNEL_FLASH_SON),true)
+LOCAL_CFLAGS += -DHBOOT_SON_KERNEL
+endif 
+
+
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
 # a (redundant) copy of the binary in /system/bin for user builds.

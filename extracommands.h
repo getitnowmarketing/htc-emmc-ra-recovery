@@ -35,20 +35,16 @@ check_my_battery_level();
 void
 make_clockwork_path();
 
+#ifndef USES_NAND_MTD
 void
 check_fs();
-
-int
-format_ext(const char *device, const char *type, const char *mount_pt, const char* root, int chk_for_upg_fs, int force_ext3);
-
-int
-check_fs_format(const char* root, const char* mnt_pt, int chk_for_upg_fs, int force_ext3);
 
 extern int
 full_ext_format_enabled;
 
 void
 toggle_full_ext_format();
+#endif
 
 void
 unpack_boot();
@@ -86,6 +82,7 @@ rb_recovery();
 void
 display_roots(const char *root);
 
+#ifndef USES_NAND_MTD
 int
 call_format_ext(const char* root_path);
 
@@ -105,6 +102,10 @@ int
 format_raw_partition(const char* root);
 
 int
+format_ext_device(const char* root);
+#endif
+
+int
 dump_device(const char *root);
 
 void
@@ -114,20 +115,29 @@ void
 write_fstab_root(const char *root_path, FILE *file);
 
 int
-format_ext_device(const char* root);
-
-int
 detect_ums_path();
 
 int
 symlink_toolbox();
 
+#ifdef LGE_RESET_BOOTMODE
 void
 check_lge_boot_mode();
+#endif
 
 void
 set_manufacturer_icon();
 
+#ifdef HBOOT_SON_KERNEL
+void
+create_htcmodelid_script();
+
+int
+do_make_new_hbootbootzip();
+
+int
+do_make_new_hbootbootzip_auto();
+#endif
 
 
 

@@ -112,10 +112,6 @@ ITSANIMAGE=0
 WEBGETSOURCE=""
 WEBGETTARGET="/sdcard"
 DB="/dev/block/"
-RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
-BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
-MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
-WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
 YAFFSEXTASECURE=1
 CWMRESTORE=0
 CWMCOMPAT=0
@@ -602,6 +598,10 @@ if [ "$DETECTEMMC" == "1" ]; then
 EMMCDEVICE=1
    if [ `getprop ro.product.manufacturer` = "HTC" ]; then
    	HTCDEVICE=1
+	RECBLK=`cat /proc/emmc | grep recovery | awk '{print $1}' | sed 's/:*$//'`
+	BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
+	MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
+	WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
    fi
 fi
 

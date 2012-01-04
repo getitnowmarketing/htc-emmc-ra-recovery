@@ -171,13 +171,11 @@ int format_non_mtd_device(const char* root)
     // if this is SDEXT:, don't worry about it.
     if (0 == strcmp(root, "SDEXT:"))
     {
-		const RootInfo* info = get_device_info(root);
-		if (info == NULL) {
-        	return 0;
-    		}
+		char device_sdext[PATH_MAX];
+    		get_device_index("SDEXT:", device_sdext);
 	
         struct stat st;
-        if (0 != stat(info->device, &st))
+        if (0 != stat(device_sdext, &st))
         {
             ui_print("No app2sd partition found. Skipping format of /sd-ext.\n");
             return 0;
@@ -335,15 +333,16 @@ void make_clockwork_path()
 void check_my_battery_level()
 {
 	
-    char cap_s[3];
+    char cap_s[4];
     
     FILE * cap = fopen("/sys/class/power_supply/battery/capacity","r");
-    fgets(cap_s, 3, cap);
+    fgets(cap_s, 4, cap);
     fclose(cap);
 
     ui_print("\nBattery Level: %s%%\n\n", cap_s);
 }
 
+#ifndef USES_NAND_MTD
 void check_fs() {
         
 	ensure_root_path_mounted("SYSTEM:");
@@ -372,7 +371,7 @@ void check_fs() {
 	ensure_root_path_unmounted("CACHE:");
 	fclose(mounts);
 }
-
+#endif
 
 
 
@@ -437,18 +436,39 @@ void unpack_boot()
 	sync();
 }
 
+#ifdef HBOOT_SON_KERNEL
+void unpack_boot_hbootzip()
+{
+	__system("unpackbootimg -i /tmp/mkboot/boot.img -o /tmp/mkboot");
+	__system("mkbootimg.sh");
+}
+#endif	
+
 void setup_mkboot()
 {
 	ensure_root_path_mounted("SDCARD:");
    	__system("mkdir -p /sdcard/mkboot");
     	__system("mkdir -p /sdcard/mkboot/zImage");
     	__system("mkdir -p /sdcard/mkboot/modules");
-        __system("rm /sdcard/mkboot/zImage/*");
-   	__system("rm /sdcard/mkboot/modules/*");
         __system("rm -rf /tmp/mkboot");
     	__system("mkdir -p /tmp/mkboot");
     	__system("chmod 0755 /tmp/mkboot/");
 }
+
+#ifdef HBOOT_SON_KERNEL
+void setup_hbootzip()
+{
+	ensure_root_path_mounted("SDCARD:");
+	__system("mkdir -p /sdcard/mkboot");
+    	__system("mkdir -p /sdcard/mkboot/zImage");
+    	__system("mkdir -p /sdcard/mkboot/modules");
+        __system("rm -rf /tmp/mkboot");
+    	__system("mkdir -p /tmp/mkboot");
+    	__system("chmod 0755 /tmp/mkboot/");
+	__system("mkdir -p /sdcard/mkboot/androidinfo");
+}
+	
+#endif
 
 int check_file_exists(const char* file_path)
 {
@@ -513,8 +533,31 @@ void do_module()
         __system("cp -r /sdcard/mkboot/modules /system/lib/modules");
 	__system("chmod 0644 /system/lib/modules/*");
 	ensure_root_path_unmounted("SYSTEM:");
-	ensure_root_path_unmounted("SDCARD:");
+	//ensure_root_path_unmounted("SDCARD:");
 }
+
+#ifdef HBOOT_SON_KERNEL
+void make_hboot_zip()
+{
+	ensure_root_path_mounted("SDCARD:");
+	char htcmodelid[20];
+	char zipid[5];
+    	property_get("ro.htcmodelid", htcmodelid, "");
+	//LOGE("htcmodelid is %s\n", htcmodelid);
+	strncpy (zipid, htcmodelid, 4);
+	zipid[4]='\0';
+	puts (zipid);
+	//LOGE("zipid is: %s\n", zipid);
+	char zippkg[PATH_MAX];
+	sprintf(zippkg, "/sbin/zip -j /tmp/mkboot/%sIMG /tmp/mkboot/android-info.txt /tmp/mkboot/boot.img", zipid);
+	//LOGE("zip command is : %s\n", zippkg);
+	__system(zippkg);
+	char zipcopy[PATH_MAX];
+	sprintf(zipcopy, "cp /tmp/mkboot/%sIMG.zip /sdcard/%sIMG.zip", zipid, zipid);
+	__system(zipcopy);
+	//LOGE("zipcopy command is: %s\n", zipcopy);
+}
+#endif
 
 void do_make_new_boot()
 {
@@ -536,7 +579,86 @@ void do_make_new_boot()
 	}
 
 	__system("rm -rf /tmp/mkboot");
+	__system("rm /sdcard/mkboot/zImage/*");
+   	__system("rm /sdcard/mkboot/modules/*");
+	ensure_root_path_unmounted("SDCARD:");
 }
+
+#ifdef HBOOT_SON_KERNEL
+int do_make_new_hbootbootzip()
+{
+	setup_hbootzip();
+	ui_print("\nConnect phone to pc");
+	ui_print("\nand copy new zImage and");
+	ui_print("\nmodules to /sdcard/mkboot");
+	ui_print("\nzImage & modules folder\n");
+	ui_print("\nCopy android-info.txt to");
+	ui_print("\n/sdcard/mkboot/androidinfo folder\n\n");
+	usb_toggle_sdcard();
+	ensure_root_path_mounted("SDCARD:");
+	dump_device("BOOT:");
+
+	if (0 == (copy_file("/sdcard/mkboot/zImage/zImage", "/tmp/mkboot/zImage"))) {
+		unpack_boot_hbootzip();
+		do_module();
+		ui_print("New boot created & Kernel modules installed!\n");
+	} else {
+		ui_print("Error missing /sdcard/mkboot/zImage/zImage\n\n");
+		return -1;
+	}
+	
+	if (0 == (copy_file("/sdcard/mkboot/androidinfo/android-info.txt", "/tmp/mkboot/android-info.txt"))) {
+		__system("rm /tmp/mkboot/boot.img");
+		__system("mv /tmp/mkboot/newboot.img /tmp/mkboot/boot.img");
+		make_hboot_zip();
+		ui_print("Hboot kernel zip created and copied to root of sdcard.\n");
+		ui_print("Rebooting to bootloader for install!!!!\n\n");
+	} else {
+		ui_print("Error missing /sdcard/mkboot/androidinfo/android-info.txt\n\n");
+		return -1;
+	}
+	__system("rm -rf /tmp/mkboot");
+	__system("rm /sdcard/mkboot/zImage/*");
+   	__system("rm /sdcard/mkboot/modules/*");
+	sync();
+	rb_bootloader();
+	return 0;
+}
+
+int do_make_new_hbootbootzip_auto()
+{
+	setup_hbootzip();
+	ensure_root_path_mounted("SDCARD:");
+	dump_device("BOOT:");
+
+	if (0 == (copy_file("/sdcard/mkboot/zImage/zImage", "/tmp/mkboot/zImage"))) {
+		unpack_boot_hbootzip();
+		do_module();
+		ui_print("New boot created & kernel modules installed!\n");
+	} else {
+		ui_print("Error missing /sdcard/mkboot/zImage/zImage\n\n");
+		return -1;
+	}
+	
+	if (0 == (copy_file("/sdcard/mkboot/androidinfo/android-info.txt", "/tmp/mkboot/android-info.txt"))) {
+		__system("rm /tmp/mkboot/boot.img");
+		__system("mv /tmp/mkboot/newboot.img /tmp/mkboot/boot.img");
+		make_hboot_zip();
+		ui_print("Hboot kernel zip created and copied to root of sdcard.\n");
+		ui_print("Rebooting to bootloader for install!!!!\n\n");
+	} else {
+		ui_print("Error missing /sdcard/mkboot/androidinfo/android-info.txt\n\n");
+		return -1;
+	}
+	__system("rm -rf /tmp/mkboot");
+        __system("rm /sdcard/mkboot/zImage/*");
+   	__system("rm /sdcard/mkboot/modules/*");
+	sync();
+	rb_bootloader();
+	return 0;
+}
+
+#endif
 
 void install_su(int eng_su)
 {
@@ -545,8 +667,11 @@ void install_su(int eng_su)
 	ensure_root_path_mounted("DATA:");
 	ensure_root_path_mounted("CACHE:");
 
+	char device_sdext[PATH_MAX];
+    	get_device_index("SDEXT:", device_sdext);	
+
 	struct stat sd;
-        	if (0 == stat("/dev/block/mmcblk1p2", &sd)) {
+        	if (0 == stat(device_sdext, &sd)) {
 		ensure_root_path_mounted("SDEXT:");
 		__system("rm /sd-ext/dalvik-cache/*com.noshufou.android.su*classes.dex");
 		__system("rm -rf /sd-ext/data/com.noshufou.android.su");
@@ -638,7 +763,7 @@ void rb_recovery()
 	__system("/sbin/reboot recovery");
 }
 
-
+#ifdef MMC_PART_DEBUG
 /* Porting Test */
 void display_roots(const char *root)
 {
@@ -655,8 +780,9 @@ void display_roots(const char *root)
 		LOGW(" filesystem : %s device_index : %s name : %s dstatus : %d dtype : %d dfirstsec : %d dsize : %d \n\n", partition->filesystem, partition->device_index, partition->name, partition->dstatus, partition->dtype, partition->dfirstsec, partition->dsize); 	
 	}
 }	
+#endif
   
-
+#ifndef USES_NAND_MTD
 const char* check_extfs_format(const char* root_path)
 {
 	const char *fstype;
@@ -826,7 +952,14 @@ int format_raw_partition(const char* root)
 {
 	const MmcPartition *partition = get_root_mmc_partition(root);
 	if (partition == NULL) {
-        return -1;
+	//For non g_mmc emmc devices here
+        	const RootInfo* info = get_device_info(root);
+		if (!strcmp(info->partition_name, "boot")) {
+		static char erase_raw_cmd[PATH_MAX];
+		sprintf(erase_raw_cmd,"/sbin/busybox dd if=/dev/zero of=%s bs=4096", info->device);
+		__system(erase_raw_cmd);
+		return 0;	
+	       }
     	}
 
 	/* Lets be extra safe here */
@@ -836,10 +969,11 @@ int format_raw_partition(const char* root)
 		sprintf(erase_raw_cmd,"/sbin/busybox dd if=/dev/zero of=%s bs=4096", partition->device_index);
 		__system(erase_raw_cmd);
 		return 0;	
-	} else {
+	} 
+   
 	return -1;
-	}
 }
+#endif
 	
 void write_fstab_root(const char *root_path, FILE *file)
 {
@@ -923,6 +1057,7 @@ void setprop_func()
 	detect_ums_path();
 }	
 
+#ifndef USES_NAND_MTD
 int format_ext_device(const char* root)
 {
 	const RootInfo* info = get_device_info(root);
@@ -947,6 +1082,7 @@ int format_ext_device(const char* root)
 
 	return -1;
 }
+#endif
 
 int detect_ums_path()
 {
@@ -977,6 +1113,8 @@ int symlink_toolbox()
 {
 	__system("ln -s /sbin/recovery /sbin/getprop");
 	__system("ln -s /sbin/recovery /sbin/setprop");
+	__system("ln -s /sbin/busybox /sbin/umount");
+	__system("ln -s /sbin/busybox /sbin/mount");
 
 #ifdef USES_NAND_MTD
 	__system("ln -s /sbin/recovery /sbin/flash_image");
@@ -986,7 +1124,7 @@ int symlink_toolbox()
 return 0;
 }
 
-
+#ifdef LGE_RESET_BOOTMODE
 int lge_fact_reset_checked = 0;
 
 int lge_direct_emmc_access_write(char *boot_mode)
@@ -1090,6 +1228,7 @@ void check_lge_boot_mode()
 		 }
 	}
 }
+#endif
 
 int manufacturer_icon_set = 0;
 
@@ -1111,3 +1250,29 @@ void set_manufacturer_icon()
 		manufacturer_icon_set = !manufacturer_icon_set;
 	}
 }
+
+
+#ifdef HBOOT_SON_KERNEL
+void write_script(const char *txt, FILE *file)
+{
+	fprintf(file, "%s ", txt);
+}
+
+void create_htcmodelid_script()
+{
+	FILE *script = fopen("/sbin/htcmodelid.sh", "w");
+    if (script == NULL) {
+        LOGW("Unable to create /sbin/htcmodelid.sh");
+        return;
+    }
+	write_script("#!/sbin/sh\n", script);
+	write_script("MODELID=`cat /proc/cmdline | sed \"s/.*mid=//\" | cut -d\" \" -f1`\n", script);
+	write_script("/sbin/setprop ro.htcmodelid $MODELID\n", script);
+	write_script("exit 0\n", script);
+	fclose(script);
+	__system("chmod 0755 /sbin/htcmodelid.sh");
+	__system("/sbin/htcmodelid.sh");
+}
+#endif
+
+	

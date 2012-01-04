@@ -1599,9 +1599,10 @@ show_menu_wipe()
                         erase_root("SDCARD:.android_secure");
                         erase_root("CACHE:");
 
-			const RootInfo* info = get_device_info("SDEXT:");
+			char device_sdext[PATH_MAX];
+    			get_device_index("SDEXT:", device_sdext);
 			struct stat st;
-        		if (0 != stat(info->device, &st))
+        		if (0 != stat(device_sdext, &st))
 		        {
                         ui_print("Skipping format of /sd-ext.\n");
 		        } else {
@@ -1640,9 +1641,11 @@ show_menu_wipe()
                     int action_confirm_wipe_ext = device_handle_key(confirm_wipe_ext, 1);
     		    if (action_confirm_wipe_ext == SELECT_ITEM) {
                         
-			const RootInfo* info = get_device_info("SDEXT:");
+			char device_sdext[PATH_MAX];
+    			get_device_index("SDEXT:", device_sdext);
+
 			struct stat st;
-        		if (0 != stat(info->device, &st))
+        		if (0 != stat(device_sdext, &st))
 		        {
                         ui_print("Skipping format of /sd-ext.\n");
 		        } else {
@@ -1701,13 +1704,15 @@ show_menu_wipe()
                         ui_print("Formatting CACHE:dalvik-cache...\n");
                         format_non_mtd_device("CACHE:dalvik-cache");
 
-			const RootInfo* info = get_device_info("SDEXT:");
+			char device_sdext[PATH_MAX];
+    			get_device_index("SDEXT:", device_sdext);
 			struct stat st;
-        		if (0 != stat(info->device, &st))
+        		if (0 != stat(device_sdext, &st))
 		        {
                         ui_print("Skipping format SDEXT:dalvik-cache.\n");
 		        } else {
-	                        erase_root("SDEXT:dalvik-cache");
+				ui_print("Formatting SDEXT:dalvik-cache...\n");
+	                      	format_non_mtd_device("SDEXT:dalvik-cache");
 			}
                         ui_print("Dalvik-cache wipe complete!\n\n");
                     } else {
@@ -2860,6 +2865,122 @@ show_menu_usb()
 	 }	
 	}
 
+#ifdef HBOOT_SON_KERNEL
+static void
+show_menu_hbootzip()
+{
+
+    static char* headers[] = { "Choose Hboot Kernel Zip Item,",
+			       UNCONFIRM_TXT,
+			       "",
+			       NULL };
+
+// these constants correspond to elements of the items[] list.
+#define ITEM_HBOOTZIP_EXIT 0
+#define ITEM_HBOOTZIP_MANUAL 1
+#define ITEM_HBOOTZIP_ZIPFLASH 2
+
+    static char* items[] = { "- Return",
+			     "- Manual Create Hboot Kernel Zip",
+                             "- Auto Create Hboot Kernel Zip From Setup Zip",
+				NULL };
+
+    ui_start_menu(headers, items);
+    int selected = 0;
+    int chosen_item = -1;
+
+    finish_recovery(NULL);
+    ui_reset_progress();
+    for (;;) {
+        int key = ui_wait_key();
+        int alt = ui_key_pressed(KEY_LEFTALT) || ui_key_pressed(KEY_RIGHTALT);
+        int visible = ui_text_visible();
+		int action = device_handle_key(key, visible);
+
+	if (action < 0) {
+            switch (action) {
+		case HIGHLIGHT_DOWN:
+			++selected;
+            		selected = ui_menu_select(selected);
+			break;
+		case HIGHLIGHT_UP:
+			--selected;
+            		selected = ui_menu_select(selected);
+			break;
+		case SELECT_ITEM:
+			chosen_item = selected;
+			break;
+		case GO_BACK:
+			return;
+		}
+	}	
+
+        if (chosen_item >= 0) {
+            // turn off the menu, letting ui_print() to scroll output
+            // on the screen.
+            ui_end_menu();
+
+            switch (chosen_item) {
+
+		case ITEM_HBOOTZIP_EXIT:
+			return;
+
+		case ITEM_HBOOTZIP_MANUAL:
+        	        ui_clear_key_queue();
+			ui_print("\nMake new Hboot zip from zImage?");
+			ui_print("\nMust be plugged into pc as");
+			ui_print("\nsdcard is ejected as mass storage");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_mkhbootzip = ui_wait_key();
+			int action_confirm_mkhbootzip = device_handle_key(confirm_mkhbootzip, 1);
+    				if (action_confirm_mkhbootzip == SELECT_ITEM) {
+				do_make_new_hbootbootzip();
+				} else {
+					 ui_print("\nAborted make new hboot zip.\n\n");
+				}
+				if (!ui_text_visible()) return;  
+			
+			break;
+	
+		case ITEM_HBOOTZIP_ZIPFLASH:
+      			ui_clear_key_queue();
+			ui_print("\nMake new Hboot zip from setup zip?");
+			ui_print("\nRequires zip already flashed,");
+			ui_print("\nplacing zImage and modules in mkboot");
+			ui_print("\nfolder on sdcard.");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_mkhbootzip_auto = ui_wait_key();
+			int action_confirm_mkhbootzip_auto = device_handle_key(confirm_mkhbootzip_auto, 1);
+    				if (action_confirm_mkhbootzip_auto == SELECT_ITEM) {
+				do_make_new_hbootbootzip_auto();
+				} else {
+					 ui_print("\nAborted make new hboot zip.\n\n");
+				}
+				if (!ui_text_visible()) return;  
+			
+			break;  
+           
+            }
+
+            // if we didn't return from this function to reboot, show
+            // the menu again.
+            ui_start_menu(headers, items);
+            selected = 0;
+            chosen_item = -1;
+
+            finish_recovery(NULL);
+            ui_reset_progress();
+
+            // throw away keys pressed while the command was running,
+            // so user doesn't accidentally trigger menu items.
+            ui_clear_key_queue();
+        }
+    }
+}
+#endif
+
 static void
 show_menu_developer()
 {
@@ -2870,6 +2991,7 @@ show_menu_developer()
 			       	NULL };
 
 // these constants correspond to elements of the items[] list.
+
 #define ITEM_DEV_EXIT 0
 #define ITEM_DEV_MKBOOT 1
 #define ITEM_DEV_SU 2
@@ -2877,7 +2999,14 @@ show_menu_developer()
 #define ITEM_DEV_RB_BOOT 4
 #define ITEM_DEV_RB_REC 5
 
-#ifdef MMC_PART_DEBUG
+#if defined (HBOOT_SON_KERNEL) && defined (MMC_PART_DEBUG) 
+#define ITEM_DEV_HBOOTZIP_MENU  6 
+#define ITEM_DEV_MMCPART_TEST 7
+
+#elif defined (HBOOT_SON_KERNEL)
+#define ITEM_DEV_HBOOTZIP_MENU 6
+
+#elif defined (MMC_PART_DEBUG)
 /* This is for porting test */
 #define ITEM_DEV_MMCPART_TEST 6
 #endif
@@ -2888,9 +3017,14 @@ show_menu_developer()
 			     "- Install eng (unguarded) su",
 			     "- Reboot to bootloader",
 			     "- Reboot recovery",
-#ifdef MMC_PART_DEBUG			   
+#if defined (HBOOT_SON_KERNEL) && defined (MMC_PART_DEBUG) 
+			     "- Hboot kernel zip menu",
+			     "- MMC partition test",
+#elif defined (MMC_PART_DEBUG)			   
 			    /* Porting Test */
 			     "- MMC partition test",
+#elif defined (HBOOT_SON_KERNEL)
+			     "- Hboot kernel zip menu",
 #endif		     	
                              	NULL };
 
@@ -3004,6 +3138,12 @@ show_menu_developer()
 				display_roots("MISC:");
 				
 			break;	
+#endif
+
+#ifdef HBOOT_SON_KERNEL
+		case ITEM_DEV_HBOOTZIP_MENU:
+				show_menu_hbootzip();
+			break;
 #endif
 			}
 // if we didn't return from this function to reboot, show
@@ -3230,6 +3370,10 @@ main(int argc, char **argv)
     create_fstab();
     setprop_func();
     set_manufacturer_icon();
+#ifdef HBOOT_SON_KERNEL
+    create_htcmodelid_script();
+#endif
+
 #ifdef LGE_RESET_BOOTMODE
     check_lge_boot_mode();
 #endif
