@@ -469,7 +469,7 @@ format_root_device(const char *root)
             }
         }
     }
-   
+#ifndef USES_NAND_MTD   
 	if (full_ext_format_enabled) {
 	//Handle MMC devices not using g_mmc_device 
 	if (info->device != g_mmc_device && info->device != g_mtd_device) {
@@ -522,7 +522,7 @@ format_root_device(const char *root)
 	}
 }
 }
-
+#endif
 
     return format_non_mtd_device(root);
 }
