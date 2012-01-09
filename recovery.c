@@ -2879,10 +2879,12 @@ show_menu_hbootzip()
 #define ITEM_HBOOTZIP_EXIT 0
 #define ITEM_HBOOTZIP_MANUAL 1
 #define ITEM_HBOOTZIP_ZIPFLASH 2
+#define ITEM_DEL_HBOOTZIP 3
 
     static char* items[] = { "- Return",
 			     "- Manual Create Hboot Kernel Zip",
-                             "- Auto Create Hboot Kernel Zip From Setup Zip",
+                 "- Auto Flash RA Hboot Setup Zip",
+			     "- Delete Hboot PXXXIMG.zip from sdcard",
 				NULL };
 
     ui_start_menu(headers, items);
@@ -2945,15 +2947,16 @@ show_menu_hbootzip()
 	
 		case ITEM_HBOOTZIP_ZIPFLASH:
       			ui_clear_key_queue();
-			ui_print("\nMake new Hboot zip from setup zip?");
-			ui_print("\nRequires zip already flashed,");
-			ui_print("\nplacing zImage and modules in mkboot");
+			ui_print("\nFlash Hboot setup PXXXIMG.zip?");
+			ui_print("\nRequires Hboot setup zip to flash,");
+			ui_print("\nwhich places zImage and modules in mkboot");
 			ui_print("\nfolder on sdcard.");
 			ui_print("\nPress %s to confirm,", CONFIRM);
 		       	ui_print("\nany other key to abort.\n\n");
 			int confirm_mkhbootzip_auto = ui_wait_key();
 			int action_confirm_mkhbootzip_auto = device_handle_key(confirm_mkhbootzip_auto, 1);
     				if (action_confirm_mkhbootzip_auto == SELECT_ITEM) {
+				show_choose_zip_menu();
 				do_make_new_hbootbootzip_auto();
 				} else {
 					 ui_print("\nAborted make new hboot zip.\n\n");
@@ -2961,6 +2964,21 @@ show_menu_hbootzip()
 				if (!ui_text_visible()) return;  
 			
 			break;  
+
+		case ITEM_DEL_HBOOTZIP:
+			ui_print("\nDelete PXXXIMG.zip from sdcard root?\n");
+			ui_print("\nPress %s to confirm,", CONFIRM);
+		       	ui_print("\nany other key to abort.\n\n");
+			int confirm_delhbootzip = ui_wait_key();
+			int action_confirm_delhbootzip = device_handle_key(confirm_delhbootzip, 1);
+    				if (action_confirm_delhbootzip == SELECT_ITEM) {
+				delete_hboot_zip();
+				ui_print("Done!\n");
+				} else {
+					ui_print("\nAborted delete Hboot zip.\n\n");
+				}
+				if (!ui_text_visible()) return;
+			break;
            
             }
 
@@ -3350,6 +3368,7 @@ main(int argc, char **argv)
 	if (strstr(argv[0], "erase_image") != NULL)
 	    return erase_image_main(argc, argv);
 #endif
+
      }
 
     time_t start = time(NULL);

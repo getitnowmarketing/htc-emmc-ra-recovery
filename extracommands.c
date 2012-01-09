@@ -557,6 +557,20 @@ void make_hboot_zip()
 	__system(zipcopy);
 	//LOGE("zipcopy command is: %s\n", zipcopy);
 }
+
+void delete_hboot_zip()
+{
+	ensure_root_path_mounted("SDCARD:");
+	char htcmodelid[20];
+	char zipid[5];
+    	property_get("ro.htcmodelid", htcmodelid, "");
+	strncpy (zipid, htcmodelid, 4);
+	zipid[4]='\0';
+	puts (zipid);
+	char zippkg_del[PATH_MAX];
+	sprintf(zippkg_del, "rm /sdcard/%sIMG.zip", zipid);
+	__system(zippkg_del);
+}
 #endif
 
 void do_make_new_boot()
@@ -627,6 +641,15 @@ int do_make_new_hbootbootzip()
 
 int do_make_new_hbootbootzip_auto()
 {
+
+	char manufacturer[64];
+    	property_get("ro.product.manufacturer", manufacturer, "");
+	if(strcmp(manufacturer, "HTC"))
+    		 {
+			ui_print("Error Non HTC phone detected!!!\n\n");
+			return -1;
+		 }
+
 	setup_hbootzip();
 	ensure_root_path_mounted("SDCARD:");
 	dump_device("BOOT:");
@@ -1121,6 +1144,7 @@ int symlink_toolbox()
 	__system("ln -s /sbin/recovery /sbin/dump_image");
 	__system("ln -s /sbin/recovery /sbin/erase_image");
 #endif	
+
 return 0;
 }
 

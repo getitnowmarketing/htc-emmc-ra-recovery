@@ -137,6 +137,9 @@ do_make_new_hbootbootzip();
 
 int
 do_make_new_hbootbootzip_auto();
+
+void
+delete_hboot_zip();
 #endif
 
 
