@@ -120,6 +120,9 @@ detect_ums_path();
 int
 symlink_toolbox();
 
+void
+preinit_setup();
+
 #ifdef LGE_RESET_BOOTMODE
 void
 check_lge_boot_mode();

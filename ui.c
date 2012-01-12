@@ -36,9 +36,12 @@
 #define MENU_MAX_COLS 64
 #define MENU_MAX_ROWS 250
 
-#ifdef BOARD_LDPI_RECOVERY
+#if defined (BOARD_LDPI_RECOVERY)
 #define CHAR_WIDTH 7
 #define CHAR_HEIGHT 16
+#elif defined (BOARD_XDPI_RECOVERY)
+#define CHAR_WIDTH 15
+#define CHAR_HEIGHT 24
 #else
 #define CHAR_WIDTH 10
 #define CHAR_HEIGHT 18
@@ -175,29 +178,37 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
+#if defined (VIGOR_RED)
+// Vigor Red
+#define MENU_TEXT_COLOR 224, 30, 12, 255
+#define NORMAL_TEXT_COLOR 116, 116, 116, 255
+#define SELECTED_TEXT_COLOR 0, 0, 0, 255
+
+#elif defined (CM_THEME)
 // CM
 #define MENU_TEXT_COLOR 61, 233, 255, 255
 #define NORMAL_TEXT_COLOR 193, 193, 193, 255
 #define SELECTED_TEXT_COLOR 0, 0, 0, 255
 
-/* 
-
+#elif defined (HTC_THEME)
 // HTC
 #define MENU_TEXT_COLOR 120, 166, 0, 255
 #define NORMAL_TEXT_COLOR 193, 193, 193, 255
 #define SELECTED_TEXT_COLOR 255, 255, 255, 255
 
-// CM
-#define MENU_TEXT_COLOR 61, 233, 255, 255
-#define NORMAL_TEXT_COLOR 193, 193, 193, 255
-#define SELECTED_TEXT_COLOR 0, 0, 0, 255
-
+#elif defined (JF_THEME)
 // JF
 #define MENU_TEXT_COLOR 64, 96, 255, 255
 #define NORMAL_TEXT_COLOR 255, 255, 0, 255
 #define SELECTED_TEXT_COLOR 255, 255, 255, 255
 
-*/
+#else 
+// CM
+#define MENU_TEXT_COLOR 61, 233, 255, 255
+#define NORMAL_TEXT_COLOR 193, 193, 193, 255
+#define SELECTED_TEXT_COLOR 0, 0, 0, 255
+
+#endif
 
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.

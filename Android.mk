@@ -86,6 +86,12 @@ ifeq ($(KERNEL_FLASH_SON),true)
 LOCAL_CFLAGS += -DHBOOT_SON_KERNEL
 endif 
 
+ifeq ($(RECOVERY_COLOR_SCHEME),)
+LOCAL_CFLAGS += -DCM_THEME
+else
+RECOVERY_COLOR_SCHEME := $(strip $(RECOVERY_COLOR_SCHEME))
+LOCAL_CFLAGS += -D$(RECOVERY_COLOR_SCHEME)
+endif
 
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses

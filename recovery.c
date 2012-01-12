@@ -1504,11 +1504,11 @@ show_menu_wipe()
 #define ITEM_WIPE_ALL      1
 #define ITEM_WIPE_DATA     2
 #define ITEM_WIPE_CACHE    3
-#define ITEM_WIPE_SECURE   4
-#define ITEM_WIPE_BOOT     5
-#define ITEM_WIPE_EXT      6
-#define ITEM_WIPE_SYSTEM   7
-#define ITEM_WIPE_DALVIK   8
+#define ITEM_WIPE_DALVIK   4
+#define ITEM_WIPE_SECURE   5
+#define ITEM_WIPE_BOOT     6
+#define ITEM_WIPE_EXT      7
+#define ITEM_WIPE_SYSTEM   8
 #define ITEM_WIPE_BAT      9
 #define ITEM_WIPE_ROT      10
 #define ITEM_WIPE_SDCARD   11
@@ -1529,12 +1529,12 @@ show_menu_wipe()
 			     "- Wipe ALL data/factory reset",
 			     "- Wipe /data",
                              "- Wipe /cache",
+			     "- Wipe Dalvik-cache",
 			     "- Wipe /sdcard/.android_secure",
 			     "- Wipe /boot",
                              "- Wipe /sd-ext",
                              "- Wipe /system",
-			     "- Wipe Dalvik-cache",
-                             "- Wipe battery stats",
+			     "- Wipe battery stats",
                              "- Wipe rotate settings",
 			     "- Wipe Sdcard",
 #if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD)
@@ -1597,6 +1597,9 @@ show_menu_wipe()
     		    if (action_confirm_wipe_all == SELECT_ITEM) {
                         erase_root("DATA:");
                         erase_root("SDCARD:.android_secure");
+#ifdef HAS_INTERNAL_SD
+			erase_root("INTERNALSD:.android_secure");
+#endif
                         erase_root("CACHE:");
 
 			char device_sdext[PATH_MAX];
@@ -1667,9 +1670,12 @@ show_menu_wipe()
                     int action_confirm_wipe_secure = device_handle_key(confirm_wipe_secure, 1);
     		    if (action_confirm_wipe_secure == SELECT_ITEM) {
                         erase_root("SDCARD:.android_secure");
-                        ui_print("/sdcard/.android_secure wipe complete!\n\n");
+#ifdef HAS_INTERNAL_SD
+			erase_root("INTERNALSD:.android_secure");
+#endif
+                        ui_print(".android_secure wipe complete!\n\n");
                     } else {
-                        ui_print("/sdcard/.android_secure wipe aborted!\n\n");
+                        ui_print(".android_secure wipe aborted!\n\n");
                     }
                     if (!ui_text_visible()) return;
                     break;
@@ -3384,18 +3390,7 @@ main(int argc, char **argv)
     property_get("ro.modversion", &prop_value[0], "not set");
 
 /* Pre recovery setup items GNM */ 
-    symlink_toolbox();
-    set_root_table();
-    create_fstab();
-    setprop_func();
-    set_manufacturer_icon();
-#ifdef HBOOT_SON_KERNEL
-    create_htcmodelid_script();
-#endif
-
-#ifdef LGE_RESET_BOOTMODE
-    check_lge_boot_mode();
-#endif
+    preinit_setup();
     
     ui_init();
     ui_print("Build : ");

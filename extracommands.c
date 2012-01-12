@@ -1299,4 +1299,20 @@ void create_htcmodelid_script()
 }
 #endif
 
+void preinit_setup()
+{
+/* Pre recovery setup items GNM */ 
+    symlink_toolbox();
+    set_root_table();
+    create_fstab();
+    setprop_func();
+    set_manufacturer_icon();
+#ifdef HBOOT_SON_KERNEL
+    create_htcmodelid_script();
+#endif
+
+#ifdef LGE_RESET_BOOTMODE
+    check_lge_boot_mode();
+#endif
+}
 	
