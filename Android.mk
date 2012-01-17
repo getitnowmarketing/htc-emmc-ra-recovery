@@ -14,10 +14,16 @@ LOCAL_SRC_FILES := \
 	firmware.c \
 	install.c \
 	roots.c \
-	ui.c \
 	verifier.c \
 	getprop.c \
 	setprop.c
+
+ifeq ($(ENABLE_TOUCH_UI),true)       
+LOCAL_SRC_FILES += ui_touch.c 
+else
+LOCAL_SRC_FILES += ui.c
+endif
+
         
 LOCAL_SRC_FILES += test_roots.c
 
@@ -91,6 +97,10 @@ LOCAL_CFLAGS += -DCM_THEME
 else
 RECOVERY_COLOR_SCHEME := $(strip $(RECOVERY_COLOR_SCHEME))
 LOCAL_CFLAGS += -D$(RECOVERY_COLOR_SCHEME)
+endif
+
+ifeq ($(ENABLE_TOUCH_UI),true)
+LOCAL_CFLAGS += -DTOUCH_UI
 endif
 
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.

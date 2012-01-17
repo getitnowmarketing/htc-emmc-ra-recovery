@@ -1,7 +1,13 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := graphics.c events.c resources.c
+LOCAL_SRC_FILES := graphics.c resources.c
+
+ifeq ($(ENABLE_TOUCH_UI),true)       
+LOCAL_SRC_FILES += events_touch.c 
+else
+LOCAL_SRC_FILES += events.c
+endif
 
 LOCAL_C_INCLUDES +=\
     external/libpng\
@@ -19,10 +25,13 @@ ifeq ($(ENABLE_TOUCH_SCROLLING),true)
 LOCAL_CFLAGS += -DUSE_TOUCH_SCROLLING
 endif
 
-
 ifeq ($(BOARD_USES_THIRTYTWO_BIT_FB),true)
 LOCAL_CFLAGS += -DTHIRTYTWO_BIT_FB
 endif 
+
+ifeq ($(ENABLE_TOUCH_UI),true)
+LOCAL_CFLAGS += -DTOUCH_UI
+endif
 
 LOCAL_MODULE := libminui
 
