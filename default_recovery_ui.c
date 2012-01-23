@@ -16,6 +16,9 @@ int device_handle_key(int key_code, int visable) {
 #ifdef USE_TOUCH_SCROLLING
 			case MT_FAKE_DN:
 #endif
+#ifdef TOUCH_UI
+			case KEY_DOWN:
+#endif
 				return HIGHLIGHT_DOWN;
 		
 			case KEY_VOLUMEUP:
@@ -23,11 +26,17 @@ int device_handle_key(int key_code, int visable) {
 #ifdef USE_TOUCH_SCROLLING
 			case MT_FAKE_UP:
 #endif
+#ifdef TOUCH_UI
+			case KEY_UP:
+#endif
 				return HIGHLIGHT_UP;
 
 			case KEY_POWER:
 			case KEY_SEARCH:
 			case KEY_END:
+#ifdef TOUCH_UI
+			case KEY_ENTER:
+#endif
 				return SELECT_ITEM;
 
 			case KEY_BACK:

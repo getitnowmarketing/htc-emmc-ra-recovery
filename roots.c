@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <ctype.h>
+#include <cutils/properties.h>
 
 #include "mtdutils/mtdutils.h"
 #include "mtdutils/mounts.h"
@@ -64,12 +65,12 @@ static RootInfo g_roots_mtd[] = {
     { "MISC:", g_mtd_device, NULL, "misc", NULL, g_raw, NULL, "mtd" },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
     { "RECOVERY:", g_mtd_device, NULL, "recovery", "/", g_raw, NULL, "mtd" },
-    { "SDCARD:", "/dev/block/mmcblk0p1", "/dev/block/mmcblk0", "sdcard", "/sdcard", "vfat", NULL, NULL },
-    { "SDEXT:", "/dev/block/mmcblk0p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, NULL },
+    { "SDCARD:", "/dev/block/mmcblk0p1", "/dev/block/mmcblk0", "sdcard", "/sdcard", "vfat", NULL, "mmc" },
+    { "SDEXT:", "/dev/block/mmcblk0p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, "mmc" },
     { "SYSTEM:", g_mtd_device, NULL, "system", "/system", "yaffs2", NULL, "mtd" },
     { "MBM:", g_mtd_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
 #ifdef HAS_INTERNAL_SD 
-   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
+   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, "mmc" },
 #endif    
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 };
@@ -81,13 +82,20 @@ static RootInfo g_roots_mmc[] = {
     { "MISC:", MISCBLK, NULL, "misc", NULL, g_raw, NULL, "emmc" },
     { "PACKAGE:", NULL, NULL, NULL, NULL, g_package_file, NULL, NULL },
     { "RECOVERY:", RECOVERYBLK, NULL, "recovery", "/", g_raw, NULL, "emmc" },
-    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", "sdcard", "/sdcard", "vfat", NULL, NULL },
-    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, NULL },
+#ifdef IS_ICONIA
+    { "SDCARD:", "/dev/block/sda1", "/dev/block/mmcblk1p1", "sdcard", "/sdcard", "vfat", NULL, "mmc" },
+#else
+    { "SDCARD:", "/dev/block/mmcblk1p1", "/dev/block/mmcblk1", "sdcard", "/sdcard", "vfat", NULL, "mmc" },
+#endif
+    { "SDEXT:", "/dev/block/mmcblk1p2", NULL, "sd-ext", "/sd-ext", "auto", NULL, "mmc" },
     { "SYSTEM:", SYSTEMBLK, NULL, "system", "/system", "auto", NULL, "emmc" },
     { "MBM:", g_mmc_device, NULL, "mbm", NULL, g_raw, NULL, NULL },
     { "TMP:", NULL, NULL, NULL, "/tmp", NULL, NULL, NULL },
 #ifdef HAS_INTERNAL_SD 
-   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, NULL },
+   { "INTERNALSD:", INTERNALSDBLK, INTERNALSDBLK2, "internal_sdcard", "/internal_sdcard", "vfat", NULL, "mmc" },
+#endif
+#ifdef IS_ICONIA
+   { "FLEXROM:", FLEXBLK, NULL, "flexrom", "/flexrom", "auto", NULL, "emmc" },
 #endif
 };
 
@@ -338,12 +346,15 @@ ensure_root_path_mounted(const char *root_path)
     }
 
     mkdir(info->mount_point, 0755);  // in case it doesn't already exist
-    if (mount_internal(info->device, info->mount_point, info->filesystem, info->filesystem_options)) {
-        if (info->device2 == NULL) {
+    if ((mount_internal(info->device, info->mount_point, info->filesystem, info->filesystem_options)) == 0) {
+        if (!strcmp(info->device, "/dev/block/sda1")) {
+	property_set("usb_storage_sdcard.mounted", "true");
+	}
+     } else {
+	    if (info->device2 == NULL) {
             LOGE("Can't mount %s\n(%s)\n", info->device, strerror(errno));
             return -1;
-        } else if (mount(info->device2, info->mount_point, info->filesystem,
-                MS_NOATIME | MS_NODEV | MS_NODIRATIME, "")) {
+        } else if (mount_internal(info->device2, info->mount_point, info->filesystem, info->filesystem_options)) {
             LOGE("Can't mount %s (or %s)\n(%s)\n",
                     info->device, info->device2, strerror(errno));
             return -1;
@@ -508,19 +519,19 @@ format_root_device(const char *root)
   }
 	/* Format raw */
 	if (!strcmp(info->type, "emmc")) {
-	if(info->device == g_mmc_device) {
-       	    mmc_scan_partitions();
-       	    const MmcPartition *partition;
-            partition = mmc_find_partition_by_name(info->partition_name);
+		if(info->device == g_mmc_device) {
+       	    	mmc_scan_partitions();
+       	    	const MmcPartition *partition;
+            	partition = mmc_find_partition_by_name(info->partition_name);
         if (partition == NULL) {
           if (!strcmp(info->partition_name, "boot")) {
 		  return format_raw_partition(root);
-       }
+       		}
 	}
 	if (!strcmp(partition->name, "boot")) {
 		return format_raw_partition(root);
 	}
-}
+    }
 }
 #endif
 
@@ -584,11 +595,21 @@ int get_device_index(const char *root, char *device)
      }
 
     if (info->device != g_mtd_device && info->device != g_mmc_device && info->device != NULL) {
-	strcpy(device, info->device);
-	return 0;
+	
+	char device_tmp[PATH_MAX];
+        strcpy(device_tmp, info->device);
+
+		if ((!strcmp(device_tmp, "/dev/block/sda1")) && info->device2 != NULL) {
+			strcpy(device, info->device2);
+			return 0;
+		} else {
+			strcpy(device, info->device);
+			return 0;
+		}
+		
     } else {
 	return -1;
-	}
+    }
 }
 
 

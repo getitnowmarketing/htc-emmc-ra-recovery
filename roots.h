@@ -51,6 +51,10 @@
 #define INTERNALSDBLK2 NULL
 #endif
 
+#ifndef FLEXBLK
+#define FLEXBLK g_mmc_device
+#endif
+
 /* Any of the "root_path" arguments can be paths with relative
  * components, like "SYSTEM:a/b/c".
  */

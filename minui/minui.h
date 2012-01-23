@@ -17,6 +17,8 @@
 #ifndef _MINUI_H_
 #define _MINUI_H_
 
+#include <stdbool.h>
+
 typedef void* gr_surface;
 typedef unsigned short gr_pixel;
 

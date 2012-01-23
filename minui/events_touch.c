@@ -196,3 +196,4 @@ int ev_sync_key_state(ev_set_key_callback set_key_cb, void *data)
     }
 
     return 0;
+}

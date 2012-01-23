@@ -174,6 +174,11 @@ static void draw_progress_locked()
     }
 }
 
+static int vk_iconwidth = 0;
+static int vk_iconheight = 0;
+static int vk_iconX = 0;
+static int vk_iconY = 0;
+
 // Draw the virtual keys on the screen. Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 static void draw_virtualkeys_locked()
@@ -181,9 +186,26 @@ static void draw_virtualkeys_locked()
     gr_surface surface = gVirtualKeys;
     int iconWidth = gr_get_width(surface);
     int iconHeight = gr_get_height(surface);
+#ifdef IS_ICONIA
+    int iconX = (gr_fb_width() - iconWidth);
+#else
     int iconX = 0; // align left, full width on 720p displays, but moves over on tablets with > 720 pixels
+#endif
     int iconY = (gr_fb_height() - iconHeight);
+    //LOGW("iconWidth: %d , iconHeight: %d , iconX: %d , iconY: %d \n", iconWidth, iconHeight, iconX, iconY);
     gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
+}
+
+static void export_vk_info()
+{
+   if (vk_iconwidth == 0 && vk_iconheight == 0 && vk_iconX == 0 && vk_iconY == 0) {
+   	gr_surface surface = gVirtualKeys;
+   	vk_iconwidth = gr_get_width(surface);
+   	vk_iconheight = gr_get_height(surface);
+   	vk_iconX = (gr_fb_width() - vk_iconwidth);
+   	vk_iconY = (gr_fb_height() - vk_iconheight);
+	//LOGW("vk_iconwidth: %d , vk_iconheight: %d , vk_iconX: %d , vk_iconY: %d \n", vk_iconwidth, vk_iconheight, vk_iconX, vk_iconY);
+  }
 }
 
 #define LEFT_ALIGN 0
@@ -234,6 +256,12 @@ static void draw_text_line(int row, const char* t, int align) {
 #define MENU_TEXT_COLOR 64, 96, 255, 255
 #define NORMAL_TEXT_COLOR 255, 255, 0, 255
 #define SELECTED_TEXT_COLOR 255, 255, 255, 255
+
+#elif defined (ICONIA_DK_BLUE)
+//
+#define MENU_TEXT_COLOR 51, 20, 255, 255
+#define NORMAL_TEXT_COLOR 193, 193, 193, 255
+#define SELECTED_TEXT_COLOR 0, 0, 0, 255
 
 #else 
 // CM
@@ -293,8 +321,8 @@ static void draw_screen_locked(void)
                 }
 		row++;
             }
-            gr_fill(0, (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
-                    gr_fb_width(), (row-1)*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
+            gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
+                    gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
         }
 
         gr_color(NORMAL_TEXT_COLOR);
@@ -306,6 +334,7 @@ static void draw_screen_locked(void)
         }
     }
 	draw_virtualkeys_locked(); //added to draw the virtual keys
+	export_vk_info();
 }
 
 // Redraw everything on the screen and flip the screen (make it visible).
@@ -380,6 +409,65 @@ static void reset_gestures() {
     touch_y = 0;
 }
 
+int input_buttons()
+{
+    int final_code = 0;
+    int start_draw = 0;
+    int end_draw = 0;
+    int vk_step = (vk_iconwidth / 4);
+    
+    if(touch_x > vk_iconX && touch_x < (vk_iconX + vk_step)) {
+        //back button
+        final_code = KEY_BACK;
+	//LOGW("final_code input_button back\n");
+        start_draw = vk_iconX;
+        end_draw = ((vk_iconX + vk_step)-1);
+    } else if(touch_x > vk_iconX && touch_x < (vk_iconX + (vk_step*2))) {
+        //up button
+        final_code = KEY_UP;
+	//LOGW("final_code input_button up\n");
+        start_draw = (vk_iconX + vk_step);
+        end_draw = (vk_iconX + (vk_step*2)-1);
+    } else if(touch_x > vk_iconX && touch_x < (vk_iconX + (vk_step*3))) {
+        //down button
+        final_code = KEY_DOWN;
+	//LOGW("final_code input_button down\n");
+        start_draw = (vk_iconX + (vk_step*2));
+        end_draw = (vk_iconX + (vk_step*3)-1);
+//    } else {
+    } else if(touch_x > vk_iconX && touch_x < (vk_iconX + (vk_step*4))) {   
+        //enter key
+        final_code = KEY_ENTER;
+	//LOGW("final_code input_button enter\n");
+        start_draw = (vk_iconX + (vk_step*3));
+        end_draw = gr_fb_width();
+    } else {
+	// x input is out of panel range
+	//LOGW(" X %d is out of range\n", touch_x);
+	return 0;
+    }
+		
+    
+    if(touch_y > (gr_fb_height() - vk_iconheight) && touch_x > vk_iconX) {
+        pthread_mutex_lock(&gUpdateMutex);
+        gr_color(0, 0, 0, 255); // clear old touch points
+        gr_fill(vk_iconX, gr_fb_height()-(vk_iconheight+2), start_draw-1, gr_fb_height()-vk_iconheight);
+        //gr_fill(0, gr_fb_height()-(vk_iconheight+2), start_draw-1, gr_fb_height()-vk_iconheight);
+        gr_fill(end_draw+1, gr_fb_height()-(vk_iconheight+2), gr_fb_width(), gr_fb_height()-vk_iconheight);
+        gr_color(MENU_TEXT_COLOR);
+        gr_fill(start_draw, gr_fb_height()-(vk_iconheight+2), end_draw, gr_fb_height()-vk_iconheight);
+        gr_flip();
+        pthread_mutex_unlock(&gUpdateMutex);
+    }
+    
+    if (in_touch == 1) {
+	//LOGW("final_code input_button returned %d \n", final_code);
+        return final_code;
+    } else {
+        return 0;
+    }
+}
+
 static int input_callback(int fd, short revents, void *data)
 {
     struct input_event ev;
@@ -416,7 +504,7 @@ static int input_callback(int fd, short revents, void *data)
 	} else {
 		rel_sum = 0;
 	}
-	printf("ev.code: %i, ev.type: %i, ev.value: %i\n", ev.code, ev.type, ev.value);
+	//printf("ev.code: %i, ev.type: %i, ev.value: %i\n", ev.code, ev.type, ev.value);
     if(ev.type == 3 && ev.code == 57) {
         if(in_touch == 0) {
             in_touch = 1; //starting to track touch...
@@ -424,21 +512,29 @@ static int input_callback(int fd, short revents, void *data)
         } else {
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
+#ifdef IS_ICONIA
+	    int keywidth = (vk_iconwidth / 4);
+#else
             int keywidth = gr_fb_width() / 4;
-	    if(touch_y > gr_fb_height() - 96 && touch_x > 0) {
+#endif
+	    if(touch_y > gr_fb_height() - vk_iconheight && touch_x > vk_iconX) {
                 //they lifted in the touch panel region
-                if(touch_x < keywidth) {
+                if(touch_x < (keywidth + vk_iconX)) {
                     //back button
                     ev.code = KEY_BACK;
-                } else if(touch_x < keywidth*2) {
+		//LOGW("touch back key @ %d\n", touch_x);
+                } else if(touch_x < (keywidth*2 + vk_iconX)) {
                     //up button
                     ev.code = KEY_UP;
-                } else if(touch_x < keywidth*3) {
+		//LOGW("touch up key @ %d\n", touch_x);
+                } else if(touch_x < (keywidth*3 + vk_iconX)) {
                     //down button
                     ev.code = KEY_DOWN;
+		//LOGW("touch down key @ %d\n", touch_x);
                 } else {
                     //enter key
                     ev.code = KEY_ENTER;
+			//LOGW("touch enter key @ %d\n", touch_x);
                 }
                 vibrate(VIBRATOR_TIME_MS);
             }
@@ -454,11 +550,23 @@ static int input_callback(int fd, short revents, void *data)
             reset_gestures();
         }
     } else if(ev.type == 3 && ev.code == 53) {
+
         old_x = touch_x;
-        touch_x = ev.value;
-        if(old_x != 0) diff_x += touch_x - old_x;
+      if (ev.value > vk_iconX) {
+	 touch_x = ev.value;
+      } else {
+	touch_x = 0;
+	in_touch = 0;
+      }
+//	LOGW("old_x : %d, touch_x: %d, touch_y: %d\n", old_x, touch_x, touch_y);
+/*
+        if(old_x != 0) {
+		 diff_x = (touch_x - old_x);
+		LOGW("diff x: %d\n", diff_x);
+	}
     
-        if(touch_y < gr_fb_height() - 196) {
+//        if(touch_y < (gr_fb_height() - (100 + vk_iconheight))) {
+	 if(touch_y < gr_fb_height() - 160) {
             if(diff_x > 100) {
                 printf("Gesture forward generated\n");
                 slide_right = 1;
@@ -473,15 +581,30 @@ static int input_callback(int fd, short revents, void *data)
                 reset_gestures();
             }
         } else {
+*/
+	  //   LOGW("Calling input_buttons evcode 53\n");
  	     input_buttons();
             //reset_gestures();
-        }
+//        }
     } else if(ev.type == 3 && ev.code == 54) {
+
         old_y = touch_y;
-        touch_y = ev.value;
-        if(old_y != 0) diff_y += touch_y - old_y;
-                
-        if(touch_y < gr_fb_height() - 196) {
+      if (ev.value > (gr_fb_height() - vk_iconheight)) {
+	touch_y = ev.value;
+      } else {
+	touch_y = 0;
+	in_touch = 0;
+      }
+
+/*
+	LOGW("old_y : %d, touch_y: %d\n", old_y, touch_y);
+        if(old_y != 0) {
+		 diff_y = (touch_y - old_y);
+		LOGW("diff y: %d\n", diff_y);
+        }
+        
+//        if(touch_y < (gr_fb_height() - (100 + vk_iconheight))) {
+	if(touch_y < gr_fb_height() - 160) {
             if(diff_y > 80) {
                 printf("Gesture Down generated\n");
                 ev.code = KEY_DOWN;
@@ -494,9 +617,11 @@ static int input_callback(int fd, short revents, void *data)
                 reset_gestures();
             }
         } else {
+*/
+		//LOGW("Calling input_buttons evcode 54\n");
 		input_buttons();
             //reset_gestures();
-        }
+//       }
     }
     
     if (ev.type != EV_KEY || ev.code > KEY_MAX) {
@@ -517,10 +642,12 @@ static int input_callback(int fd, short revents, void *data)
     }
     pthread_mutex_unlock(&key_queue_mutex);
 
-    if (ev.value > 0 && device_toggle_display(key_pressed, ev.code)) {
+    // Alt+L or Home+End: toggle log display
+        int alt = key_pressed[KEY_LEFTALT] || key_pressed[KEY_RIGHTALT];
+        if ((alt && ev.code == KEY_L && ev.value > 0) ||
+            (key_pressed[KEY_HOME] && ev.code == KEY_END && ev.value > 0)) {
         pthread_mutex_lock(&gUpdateMutex);
         show_text = !show_text;
-        if (show_text) show_text_ever = 1;
         update_screen_locked();
         pthread_mutex_unlock(&gUpdateMutex);
     }
@@ -798,48 +925,3 @@ void ui_clear_key_queue() {
     pthread_mutex_unlock(&key_queue_mutex);
 }
 
-int input_buttons()
-{
-    int final_code = 0;
-    int start_draw = 0;
-    int end_draw = 0;
-    
-    if(touch_x < 173) {
-        //back button
-        final_code = KEY_BACK;
-        start_draw = 0;
-        end_draw = 172;
-    } else if(touch_x < 360) {
-        //up button
-        final_code = KEY_UP;
-        start_draw = 173;
-        end_draw = 359;
-    } else if(touch_x < 550) {
-        //down button
-        final_code = KEY_DOWN;
-        start_draw = 360;
-        end_draw = 549;
-    } else {
-        //enter key
-        final_code = KEY_ENTER;
-        start_draw = 550;
-        end_draw = gr_fb_width();
-    }
-    
-    if(touch_y > gr_fb_width() - 96 && touch_x > 0) {
-        pthread_mutex_lock(&gUpdateMutex);
-        gr_color(0, 0, 0, 255); // clear old touch points
-        gr_fill(0, gr_fb_height()-98, start_draw-1, gr_fb_height()-96);
-        gr_fill(end_draw+1, gr_fb_height()-98, gr_fb_width(), gr_fb_height()-96);
-        gr_color(MENU_TEXT_COLOR);
-        gr_fill(start_draw, gr_fb_height()-98, end_draw, gr_fb_height()-96);
-        gr_flip();
-        pthread_mutex_unlock(&gUpdateMutex);
-    }
-    
-    if (in_touch == 1) {
-        return final_code;
-    } else {
-        return 0;
-    }
-}

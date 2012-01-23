@@ -81,6 +81,7 @@ RECOVERY=foo
 DEVICEBLK=foo
 EMMCDEVICE=0
 HTCDEVICE=0
+ICONIA=0
 
 SUBNAME=""
 NORECOVERY=0
@@ -92,6 +93,7 @@ NOCACHE=0
 NOSPLASH1=0
 NOSPLASH2=0
 NOEXT=1
+NOFLEX=1
 
 NOANDROID_SECURE=1
 NOANDROID_SECURE_INTERNAL=1
@@ -115,11 +117,13 @@ DB="/dev/block/"
 YAFFSEXTASECURE=1
 CWMRESTORE=0
 CWMCOMPAT=0
+USB_STORAGE=0
 
 DETECTEMMC=`getprop ro.emmc`
 SDBLK=`getprop ro.sdcard.block`
 SDEXTBLK=`getprop ro.sd-ext.block`
 INTERNALSDBLK=`getprop ro.internal_sdcard.block`
+DATAMEDIA=`getprop ro.datamedia.device`
 
 DEFAULTUPDATEPATH="/sdcard/download"
 
@@ -136,7 +140,6 @@ NAMESERVER2=64.46.128.4
 # Do not know how to start the rmnet0 interface in recovery
 # If in normal mode "ifconfig rmnet0 down" kills rild too
 # /system/bin/rild& exits immediately, todo?
-
 
 DEVICEID=`cat /proc/cmdline | sed "s/.*serialno=//" | cut -d" " -f1`
 
@@ -167,7 +170,6 @@ echo2log()
     fi
 }
 
-
 if [ "`echo $0 | grep /sbin/nandroid-mobile.sh`" == "" ]; then
     cp $0 /sbin
     chmod 755 /sbin/`basename $0`
@@ -192,7 +194,7 @@ esac
 ECHO=echo
 OUTPUT=""
 
-for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l wimax -lnosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l android_secure_internal -l cwmcompat -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
+for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -l nodata -l nosystem -l nocache -l nomisc -l wimax -lnosplash1 -l nosplash2 -l subname: -l backup -l restore -l compress -l getupdate -l delete -l path -l webget: -l webgettarget: -l nameserver: -l nameserver2: -l bzip2: -l defaultinput -l autoreboot -l autoapplyupdate -l ext -l android_secure -l android_secure_internal -l usb -l cwmcompat -l flexrom -l save: -l switchto: -l listbackup -l listupdate -l silent -l quiet -l help -- "cbruds:p:eaql" "$@"); do
     case $option in
         --silent)
             ECHO=echo2log
@@ -252,7 +254,7 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             $ECHO "-a | --android_secure      Preserve the contents of /sdcard/.android_secure along with"
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
-	        $ECHO "--android_secure_internal  Preserve the contents of /internal_sdcard/.android_secure along with"
+	    $ECHO "--android_secure_internal  Preserve the contents of /internal_sdcard/.android_secure along with"
             $ECHO "                           the other partitions being backed up, to easily switch roms."
             $ECHO ""
             $ECHO "-r | --restore             Will restore the last made backup which matches --subname"
@@ -339,7 +341,12 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             $ECHO ""
             $ECHO "--listupdate               Will search the entire SDCARD for updates and will dump"
             $ECHO "                           the list to stdout for use by the UI. Should be run with --silent"
+	    $ECHO ""
             $ECHO "--cwmcompat                Compatibility Mode for CWM Backup Folder"
+            $ECHO ""
+	    $ECHO "--flexrom                  Backup the flexrom partition on acer iconia"
+            $ECHO ""
+	    $ECHO "--usb                      Use usb vfat drive mounted on /sdcard"
             $ECHO ""                           
 	    exit 0
             ;;
@@ -415,7 +422,7 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             shift
             ;;
         --android_secure_internal)
-            ANDROID_SECURE_INTERNAL=0
+            NOANDROID_SECURE_INTERNAL=0
             shift
             ;;
         --restore)
@@ -579,6 +586,14 @@ for option in $(getopt --name="nandroid-mobile v2.2.3" -l norecovery -l noboot -
             CWMCOMPAT=1
 	    shift
             ;;
+	--flexrom)
+            NOFLEX=0
+	    shift
+            ;;
+	--usb)
+            USB_STORAGE=1
+	    shift
+            ;;
 	--)
             shift
             break
@@ -602,6 +617,13 @@ EMMCDEVICE=1
 	BOOTBLK=`cat /proc/emmc | grep boot | awk '{print $1}' | sed 's/:*$//'`
 	MISCBLK=`cat /proc/emmc | grep misc | awk '{print $1}' | sed 's/:*$//'`
 	WIMAXBLK=`cat /proc/emmc | grep wimax -w | awk '{print $1}' | sed 's/:*$//'`
+   fi
+	
+   if [ `getprop ro.product.manufacturer` = "Acer" ]; then
+   	if [ `getprop ro.product.model` == "A500" -o `getprop ro.product.board` == "ventana" -o `getprop ro.product.board` == "picasso" ]; then
+	ICONIA=1
+	FLEXBLK=`getprop ro.flexrom.block`
+	fi
    fi
 fi
 
@@ -809,7 +831,13 @@ fi
 if [ "$RESTORE" == 1 ]; then
 
                 umount /sdcard 2>/dev/null
+
+		if ["$USB_STORAGE" == "1" ]; then
+		mount -t vfat -o noatime,nodiratime,nodev /dev/block/sda1 /sdcard 
+		else
 		mount /sdcard 2>/dev/null
+		fi
+
 		if [ "`mount | grep sdcard`" == "" ]; then
 			$ECHO "error: unable to mount /sdcard, aborting"
 			exit 1
@@ -858,9 +886,49 @@ if [ "$RESTORE" == 1 ]; then
 		$ECHO "Restore path: $RESTOREPATH"
                 $ECHO ""
 
-                umount /system /data 2>/dev/null
-		mount /system 2>/dev/null
-		mount /data 2>/dev/null
+data_media_asecure_restore()
+{
+    CWD=`pwd`
+    cd /
+
+    if [ `mount | grep data -w | wc -l` == 0 ]; then
+	  mount /data
+    fi
+
+    cd $CWD
+    CHECK=`mount | grep /data -w`
+
+    if [ "$CHECK" == "" ]; then
+       $ECHO "Warning: --android_secure on internal sd specified but unable to mount the android_secure partition."
+       	exit 1
+    else
+    CWD=`pwd`
+
+    cd /internal_sdcard
+	if  [ -e $RESTOREPATH/android_internalsd_secure.img ]; then
+		mkdir -p /internal_sdcard/.android_secure
+		cd .android_secure
+		rm -rf * 2>/dev/null
+		rm -rf .* 2>/dev/null
+		$unyaffs $RESTOREPATH/android_internalsd_secure.img
+    		cd $CWD
+	        sync
+	        umount /data
+        fi 
+   fi
+}    
+		
+		if [ "$ICONIA" == "1" ]; then
+		  umount /system /data /flexrom 2>/dev/null
+		  mount /system 2>/dev/null
+		  mount /data 2>/dev/null
+		  mount /flexrom 2>/dev/null
+		else
+                  umount /system /data 2>/dev/null
+		  mount /system 2>/dev/null
+		  mount /data 2>/dev/null
+		fi
+
 		if [ "`mount | grep data`" == "" ]; then
 			$ECHO "error: unable to mount /data, aborting"	
 			exit 1
@@ -906,6 +974,7 @@ if [ "$RESTORE" == 1 ]; then
                     fi
                     $ECHO "Checking free space /sdcard for the decompression operation."
                     FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
+		    $ECHO "freeblocks for decompression :$FREEBLOCKS blocks"
                     # we need about 100MB for gzip to uncompress the files
                     if [ $FREEBLOCKS -le 100000 ]; then
                         $ECHO "Error: not enough free space available on sdcard (need about 100mb)"
@@ -996,8 +1065,12 @@ if [ "$RESTORE" == 1 ]; then
 
 		# Amon_RA : If there's no wimax backup set nowimax to 1 so wimax restore doesn't start                
                 if [ `ls wimax* 2>/dev/null | wc -l` == 0 ]; then
-                    NOWIMAX=1
-				
+                    NOWIMAX=1	
+                fi
+
+		# GNM flexrom.img for acer iconia
+		if [ `ls flexrom* 2>/dev/null | wc -l` == 0 ]; then
+                    NOFLEX=1
                 fi
 
 		for image in boot recovery wimax misc; do
@@ -1079,13 +1152,15 @@ if [ "$RESTORE" == 1 ]; then
 			
                 done
 
-		for image in data system cache; do
+		for image in data system cache flexrom; do
+	
                         if [ "$NODATA" == "1" -a "$image" == "data" ]; then
                             $ECHO ""
                             $ECHO "Not restoring data image!"
                             $ECHO ""
                             continue
                         fi
+
 			if [ "$NOSYSTEM" == "1" -a "$image" == "system" ]; then
                             $ECHO ""
                             $ECHO "Not restoring system image!"
@@ -1099,18 +1174,38 @@ if [ "$RESTORE" == 1 ]; then
                             $ECHO ""
                             continue
                         fi
+			
+			if [ "$NOFLEX" == "1" -a "$image" == "flexrom" ]; then
+			    $ECHO ""
+                            $ECHO "Not restoring flexrom image!"
+                            $ECHO ""
+                            continue
+                        fi
+
 			$ECHO "Erasing /$image..."
 			cd /$image
-			rm -rf * 2>/dev/null
-			
+
+			# preserve /data/media on acer iconia
+			if [ "$DATAMEDIA" == "1" -a "$image" == "data" ]; then
+				
+				for f in $(ls -a | grep -v ^media$); do rm -rf $f; done
+			else
+				rm -rf * 2>/dev/null
+				rm -rf .* 2>/dev/null
+			fi
+
 			if [ -e $RESTOREPATH/$image.*.tar ]; then
 				cd /
 				$ECHO "Unpacking Clockwork $image image..."
 				tar -xf $RESTOREPATH/$image.*.tar
+			elif [ -e $RESTOREPATH/$image.tar ]; then
+				cd /
+				$ECHO "Unpacking $image.tar image..."
+				tar -xf $RESTOREPATH/$image.tar
 			elif [ -e $RESTOREPATH/$image.yaffs2.img ]; then
-					$ECHO "Unpacking Clockwork 5 yaffs2 $image image..."
+				$ECHO "Unpacking Clockwork 5 yaffs2 $image image..."
 		        	$unyaffs $RESTOREPATH/$image.yaffs2.img $OUTPUT
-					cd /
+				cd /
 			else	
 				$ECHO "Unpacking $image image..."
 		        	$unyaffs $RESTOREPATH/$image.img $OUTPUT
@@ -1227,8 +1322,9 @@ if [ "$RESTORE" == 1 ]; then
 
 if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
 			# GNM : Check if there's an internal_sd partition before starting to restore    		
-			if [ -e `$INTERNALSDBLK` ]; then
-	                    $ECHO "Restoring the android_secure contents on internal sd."
+			$ECHO "Restoring the android_secure contents on internal sd."
+			if [ "$DATAMEDIA" != "1" ]; then
+	                    
 	                    CWD=`pwd`
 	                    cd /
 
@@ -1252,35 +1348,29 @@ if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
 				     cd .android_secure
 				     rm -rf ./* 2>/dev/null
 				     $unyaffs $RESTOREPATH/android_internalsd_secure.img 
-			       else
-				if [ -e $RESTOREPATH/android_internalsd_secure.tar ]; then 
+			       	elif [ -e $RESTOREPATH/android_internalsd_secure.tar ]; then 
 	                            rm -rf .android_secur* 2>/dev/null
 	                            tar -x$TARFLAGS -f $RESTOREPATH/android_emmc_secure.tar
-	                        else
-	                            if [ -e $RESTOREPATH/android_internalsd_secure.tgz ]; then
+	                        elif [ -e $RESTOREPATH/android_internalsd_secure.tgz ]; then
 	                                rm -rf .android_secur* 2>/dev/null
 	                                tar -x$TARFLAGS -zf $RESTOREPATH/android_emmc_secure.tgz
-	                            else
-	                                if [ -e $RESTOREPATH/android_internalsd_secure.tar.bz2 ]; then
+	                            elif [ -e $RESTOREPATH/android_internalsd_secure.tar.bz2 ]; then
 	                                    rm -rf .android_secur* 2>/dev/null
 	                                    tar -x$TARFLAGS -jf $RESTOREPATH/android_emmc_secure.tar.bz2
 	                                else
 	                                    $ECHO "Warning: --android_secure internal sd specified but cannot find the android_secure backup."
 	                                   # $ECHO "Warning: your phone may be in an inconsistent state on reboot."
 	                                fi
-	                            fi
-	                        fi
-			      fi
+	                     	                     			      
 	                        cd $CWD
 	                        sync
 	                        umount /internal_sdcard
 	
 	                    fi
 			else
-	                        # Amon_RA : Just display a warning
-				$ECHO "Warning: --android_secure specified but android_secure partition present on sdcard"
-	                        # $ECHO "Warning: your phone may be in an inconsistent state on reboot."     
-                	fi
+	                        #data/media .android_secure
+				data_media_asecure_restore
+		     fi
 		fi
 		$ECHO "Restore done"
 		exit 0
@@ -1295,13 +1385,31 @@ umount /data 2>/dev/null
 umount /sdcard 2>/dev/null
 mount -o ro /system || FAIL=1
 mount -o ro /data || FAIL=2
+if [ "$USB_STORAGE" == "1" ]; then
+mount -t vfat -o noatime,nodiratime,nodev /dev/block/sda1 /sdcard || FAIL=3
+else
 mount /sdcard || mount $SDBLK /sdcard || FAIL=3
+fi
+if [ "$ICONIA" == "1" ]; then
+umount /flexrom 2>/dev/null
+mount -o ro /flexrom || FAIL=4
+fi
+if [ "$ICONIA" == "1" ]; then
 case $FAIL in
 	1) $ECHO "Error mounting system read-only"; umount /system /data /sdcard; exit 1;;
 	2) $ECHO "Error mounting data read-only"; umount /system /data /sdcard; exit 1;;
 	3) $ECHO "Error mounting sdcard read-write"; umount /system /data /sdcard; exit 1;;
+	4) $ECHO "Error mounting flexrom read-write"; umount /system /data /sdcard /flexrom; exit 1;;
 esac
 
+else
+case $FAIL in
+	1) $ECHO "Error mounting system read-only"; umount /system /data /sdcard; exit 1;;
+	2) $ECHO "Error mounting data read-only"; umount /system /data /sdcard; exit 1;;
+	3) $ECHO "Error mounting sdcard read-write"; umount /system /data /sdcard; exit 1;;
+	4) $ECHO "Error mounting flexrom read-write"; umount /system /data /sdcard /flexrom; exit 1;;
+esac
+fi
 if [ ! "$SUBNAME" == "" ]; then
     SUBNAME=$SUBNAME-
 fi
@@ -1355,6 +1463,9 @@ if [ ! "$BACKUPLEGEND" == "" ]; then
     BACKUPLEGEND=$BACKUPLEGEND-
 fi
 
+if [ "$NOFLEX" == 0 ]; then
+    BACKUPLEGEND=$BACKUPLEGEND"F"
+fi
 
 TIMESTAMP="`date +%Y%m%d-%H%M`"
 DESTDIR="$BACKUPPATH/$SUBNAME$BACKUPLEGEND$TIMESTAMP"
@@ -1378,6 +1489,27 @@ else
 	fi
 	rm $DESTDIR/.nandroidwritable
 fi
+
+data_media_asecure_backup()
+{
+    CHECK=`mount | grep /data -w`
+    if [ "$CHECK" == "" ]; then
+        mount /data 2>/dev/null
+    fi
+    
+    CHECK=`mount | grep /data -w`
+    if [ "$CHECK" == "" ]; then
+          $ECHO "Warning: --android_secure internal specified but unable to mount the data/media partition."
+          exit 1
+    else
+        
+        CWD=`pwd`
+	cd /internal_sdcard
+	$mkyaffs2image /internal_sdcard/.android_secure $DESTDIR/android_internalsd_secure.img
+	cd $CWD
+        
+    fi
+}
 
 # 3.
 $ECHO "checking free space on sdcard"
@@ -1532,7 +1664,7 @@ fi
 done
 
 # 6
-for image in system data cache; do
+for image in system data cache flexrom; do
     case $image in
         system)
             if [ "$NOSYSTEM" == 1 ]; then
@@ -1551,15 +1683,45 @@ for image in system data cache; do
                 $ECHO "Dump of the cache partition suppressed."
                 continue
             fi
+	    ;;
+	flexrom)
+	    if [ "$NOFLEX" == 1 ]; then
+                $ECHO "Dump of the flexrom partition suppressed."
+                continue
+            fi	
             ;;
     esac
 
 	# 6a
 	$ECHO -n "Dumping $image to $DESTDIR/$image.img..."
-	$mkyaffs2image /$image $DESTDIR/$image.img $OUTPUT
+	if [ "$ICONIA" == "1" -a "$image" == "data" ]; then
+		cd /
+		tar -cf $DESTDIR/$image.tar /$image --exclude media
+	else
+		$mkyaffs2image /$image $DESTDIR/$image.img $OUTPUT
+	fi
 	sync
 	$ECHO "done"
 done
+
+# Acer Iconia only stuff
+if [ "$ICONIA" == "1" ]; then
+	# Backup BCT & GPT
+	dd if=/dev/block/mmcblk0 bs=512 count=13312 of=$DESTDIR/mmcblk0_start.img
+	
+	# Get usb serial number
+	if [ -e /lib/modules/2.6.36.3/getuid.ko ]; then
+		addr=`grep tegra_chip_uid /proc/kallsyms | awk '{printf "0x"; printf $1 }'`
+		insmod /lib/modules/2.6.36.3/getuid.ko tegrachipuid=$addr
+		sleep 1
+		uid=`dmesg | grep -m1 ">>_getuid_:" | awk '{ printf $4 }'`
+		rmmod getuid
+		echo $uid > $DESTDIR/uid.txt
+	else
+		$ECHO "Missing getuid.ko!"
+	fi
+
+fi
 
 # Backing up the ext partition, not really for the backup but to switch ROMS and apps at the same time.
 
@@ -1623,7 +1785,9 @@ fi
 # Backing up the /internal_sdcard/.android_secure, not really for the backup but to switch ROMS and apps at the same time.
 
 if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
-    $ECHO "Storing the android_secure contents in the backup folder."
+    $ECHO "Storing the internal android_secure contents in the backup folder."
+
+  if [ "$DATAMEDIA" != "1" ]; then
 
     CHECK=`mount | grep /internal_sdcard -w`
     if [ "$CHECK" == "" ]; then
@@ -1641,33 +1805,43 @@ if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
         # Depending on the whether we want it compressed we do either or.
         if [ "$YAFFSEXTASECURE" == 1 ]; then
 	$mkyaffs2image /internal_sdcard/.android_secure $DESTDIR/android_internalsd_secure.img
-	else
-		if [ "$COMPRESS" == 0 ]; then 
+	elif [ "$COMPRESS" == 0 ]; then 
             tar -cvf $DESTDIR/android_internalsd_secure.tar .android_secur*
-        else
-            if [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
+        elif [ "$DEFAULTCOMPRESSOR" == "bzip2" ]; then
                 tar -cvjf $DESTDIR/android_internalsd_secure.tar.bz2 .android_secur*
-            else
+        else
                 tar -cvzf $DESTDIR/android_internalsd_secure.tgz .android_secur*
-            fi
-        fi
-       fi
-    fi
+         fi
+        
 	cd $CWD
         umount /internal_sdcard
+
+     fi
+	
+  else
+	#data/media .android_secure
+	data_media_asecure_backup
+  fi
+
 fi
 
 # 7.
 $ECHO -n "generating md5sum file..."
 CWD=$PWD
 cd $DESTDIR
-md5sum *img > nandroid.md5
+
+if [ `ls *.tar| wc -l` != 0 ]; then 
+	md5sum *img *tar > nandroid.md5
+else
+	md5sum *img > nandroid.md5
+fi
 
 # 7b.
 if [ "$COMPRESS" == 1 ]; then
     $ECHO "Compressing the backup, may take a bit of time, please wait..."
     $ECHO "checking free space on sdcard for the compression operation."
     FREEBLOCKS="`df -k /sdcard| grep sdcard | awk '{ print $4 }'`"
+    $ECHO "freeblocks on sdcard for compression :$FREEBLOCKS blocks"	
     # we need about 70MB for the intermediate storage needs
     if [ $FREEBLOCKS -le 70000 ]; then
 	$ECHO "error: not enough free space available on sdcard for compression operation (need 70mb)"
@@ -1685,9 +1859,14 @@ $ECHO "done"
 
 # 8.
 $ECHO "unmounting system, data and sdcard"
+cd /
 umount /system
 umount /data
 umount /sdcard
+if [ "$ICONIA" == "1" ]; then
+umount /flexrom
+fi
+
 
 # 9.
 $ECHO "Backup successful."

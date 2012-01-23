@@ -145,5 +145,10 @@ void
 delete_hboot_zip();
 #endif
 
+#ifdef IS_ICONIA
+void
+exec_itsmagic();
+#endif
 
-
+void
+source_and_credits();

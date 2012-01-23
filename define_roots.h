@@ -71,4 +71,19 @@
 #define INTERNALSDBLK2 "/dev/block/ndda"
 #endif
 
+#ifdef PARTITION_LAYOUT_ICONIA
+
+/* Layout for ACER Iconia */
+
+#define BOOTBLK "/dev/block/mmcblk0p2"
+#define CACHEBLK "/dev/block/mmcblk0p4"
+#define DATABLK "/dev/block/mmcblk0p8"
+#define MISCBLK "/dev/block/mmcblk0p5"
+#define RECOVERYBLK "/dev/block/mmcblk0p1"
+#define SYSTEMBLK "/dev/block/mmcblk0p3"
+#define FLEXBLK "/dev/block/mmcblk0p6"
+// aboot /dev/block/mmcblk0p8
+
+
+#endif
 

@@ -192,11 +192,24 @@ int format_non_mtd_device(const char* root)
     }
 
     static char tmp[PATH_MAX];
+#ifdef HAS_DATA_MEDIA_SDCARD
+    if (strcmp(root, "DATA:") == 0) {
+        sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
+        __system(tmp);
+    }
+    else {
     sprintf(tmp, "rm -rf %s/*", path);
     __system(tmp);
     sprintf(tmp, "rm -rf %s/.*", path);
     __system(tmp);
-    
+    }
+#else
+    sprintf(tmp, "rm -rf %s/*", path);
+    __system(tmp);
+    sprintf(tmp, "rm -rf %s/.*", path);
+    __system(tmp);
+#endif
+
     ensure_root_path_unmounted(root);
     return 0;
 }
@@ -348,6 +361,9 @@ void check_fs() {
 	ensure_root_path_mounted("SYSTEM:");
 	ensure_root_path_mounted("DATA:");
 	ensure_root_path_mounted("CACHE:");
+#ifdef IS_ICONIA
+	ensure_root_path_mounted("FLEXROM:");
+#endif
 
 	static char discard[1024];
         char device[64], name[64], type[64];
@@ -358,7 +374,12 @@ void check_fs() {
                 if (
                         !strcmp(name, "/data") ||
                         !strcmp(name, "/system") ||
+#ifdef IS_ICONIA
+			!strcmp(name, "/flexrom") ||
                         !strcmp(name, "/cache") 
+#else
+			!strcmp(name, "/cache") 
+#endif
                  //       !strcmp(name, "/proc")
                 )
                        
@@ -369,6 +390,9 @@ void check_fs() {
 	ensure_root_path_unmounted("SYSTEM:");
 	ensure_root_path_unmounted("DATA:");
 	ensure_root_path_unmounted("CACHE:");
+#ifdef IS_ICONIA
+	ensure_root_path_unmounted("FLEXROM:");
+#endif
 	fclose(mounts);
 }
 #endif
@@ -769,6 +793,9 @@ void rb_bootloader()
 #ifdef HAS_INTERNAL_SD
 	ensure_root_path_unmounted("INTERNALSD:");
 #endif
+#ifdef IS_ICONIA
+	ensure_root_path_unmounted("FLEXROM:");
+#endif
 	__system("/sbin/reboot bootloader");
 }
 
@@ -782,6 +809,9 @@ void rb_recovery()
 	ensure_root_path_unmounted("SDEXT:");
 #ifdef HAS_INTERNAL_SD
 	ensure_root_path_unmounted("INTERNALSD:");
+#endif
+#ifdef IS_ICONIA
+	ensure_root_path_unmounted("FLEXROM:");
 #endif
 	__system("/sbin/reboot recovery");
 }
@@ -814,7 +844,7 @@ const char* check_extfs_format(const char* root_path)
 	return NULL;
 	}
 	
-	if (!strcmp(root_path, "SYSTEM:") || !strcmp(root_path, "DATA:") || !strcmp(root_path, "CACHE:")) {
+	if (!strcmp(root_path, "SYSTEM:") || !strcmp(root_path, "DATA:") || !strcmp(root_path, "CACHE:") || !strcmp(root_path, "FLEXROM:")) {
 
 	const RootInfo* info = get_device_info(root_path);
 	if (info == NULL) {
@@ -1036,6 +1066,9 @@ void create_fstab()
     write_fstab_root("SYSTEM:", file);
     write_fstab_root("SDCARD:", file);
     write_fstab_root("SDEXT:", file);
+#ifdef IS_ICONIA
+    write_fstab_root("FLEXROM:", file);
+#endif
     fclose(file);
 }
 
@@ -1063,7 +1096,7 @@ void set_nandroid_prop(const char *root_path)
      }
      else
      {
-	LOGW("Error in getting device to setprop for %s", root_path);
+	LOGW("Error in getting device to setprop for %s\n", root_path);
      }	
 }
 		
@@ -1076,6 +1109,9 @@ void setprop_func()
 	set_nandroid_prop("SDEXT:");
 #ifdef HAS_INTERNAL_SD 
 	set_nandroid_prop("INTERNALSD:");
+#endif
+#ifdef IS_ICONIA
+	set_nandroid_prop("FLEXROM:");
 #endif
 	detect_ums_path();
 }	
@@ -1134,11 +1170,13 @@ int detect_ums_path()
 
 int symlink_toolbox()
 {
+	__system("/sbin/busybox --install -s /sbin");
 	__system("ln -s /sbin/recovery /sbin/getprop");
 	__system("ln -s /sbin/recovery /sbin/setprop");
+/*
 	__system("ln -s /sbin/busybox /sbin/umount");
 	__system("ln -s /sbin/busybox /sbin/mount");
-
+*/
 #ifdef USES_NAND_MTD
 	__system("ln -s /sbin/recovery /sbin/flash_image");
 	__system("ln -s /sbin/recovery /sbin/dump_image");
@@ -1299,6 +1337,23 @@ void create_htcmodelid_script()
 }
 #endif
 
+#ifdef IS_ICONIA
+void exec_itsmagic()
+{
+	ui_print("\n");
+	ui_print("Executing itsmagic by sc2k!\n");
+	__system("/sbin/itsmagic");
+	ui_print("Done!\n");
+}
+#endif
+
+void symlink_data_media()
+{
+	__system("setprop ro.datamedia.device 1");
+	__system("mkdir /data/media");
+	__system("ln -s /data/media/ /internal_sdcard");
+}
+
 void preinit_setup()
 {
 /* Pre recovery setup items GNM */ 
@@ -1314,5 +1369,22 @@ void preinit_setup()
 #ifdef LGE_RESET_BOOTMODE
     check_lge_boot_mode();
 #endif
+
+#ifdef HAS_DATA_MEDIA_SDCARD
+    symlink_data_media();
+#endif
+}
+
+void source_and_credits()
+{
+	ui_print("Built by Getitnowmarketing\n\n");
+	ui_print("Credits:\n");
+	ui_print("Amon Ra for original source\n");
+	ui_print("Koush & the rest of Cyanogenmod team\n");
+#ifdef TOUCH_UI
+	ui_print("Gweedo767 & CEnnis91 for touch ui\n");
+#endif
+	ui_print("Source Code for both GPL and Apache Licensed code:\n");
+	ui_print("https://github.com/getitnowmarketing\n");
 }
 	

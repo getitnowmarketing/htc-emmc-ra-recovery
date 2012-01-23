@@ -325,11 +325,14 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [X] .android_secure",
-#ifdef HAS_INTERNALSD
-				"- [X] .android_secure_internalsd",
+#if defined HAS_INTERNALSD
+				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
+#endif
+#ifdef IS_ICONIA		
+				"- [X] flexrom",
 #endif
 				"- Perform Restore",
 				"- Return",
@@ -343,11 +346,14 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
-#ifdef HAS_INTERNALSD
+#if defined HAS_INTERNALSD
 				"- [X] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
 				"- [X] wimax",
+#endif
+#ifdef IS_ICONIA		
+				"- [X] flexrom",
 #endif
 				"- Perform Restore",
 				"- Return",
@@ -361,13 +367,15 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#ifdef HAS_INTERNALSD
+#if defined HAS_INTERNALSD 
 				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
 #endif
-
+#ifdef IS_ICONIA		
+				"- [ ] flexrom",
+#endif
 				"- Perform Restore",
 				"- Return",
 		NULL};
@@ -410,10 +418,14 @@ show_menu_nandroid_restore(const char *selected_restore)
             ui_end_menu();
 #if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
 	    if (chosen_item < 9) {
-#elif defined (HAS_INTERNALSD)
+#elif defined (HAS_INTERNALSD) 
             if (chosen_item < 8) {
 #elif defined (HAS_WIMAX)
-			if (chosen_item < 8) {
+	    if (chosen_item < 8) {
+#elif defined (IS_ICONIA)
+	    if (chosen_item < 8) {
+#elif defined (USE_USB_STORAGE)
+	    if (chosen_item < 8) {
 #else
             if (chosen_item < 7) {
 #endif
@@ -432,6 +444,9 @@ show_menu_nandroid_restore(const char *selected_restore)
 #elif defined (HAS_WIMAX)
 			} else if (chosen_item == 9) {
 		return; 
+#elif defined (IS_ICONIA)
+			} else if (chosen_item == 9) {
+		return;
 #else
             } else if (chosen_item == 8) {
 		return; 
@@ -440,7 +455,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 
             } else {
 
-	      char nandroid_command[1024];
+	      char nandroid_command[PATH_MAX];
 	      strcpy(nandroid_command, "/sbin/nandroid-mobile.sh -r --nomisc --nosplash1 --nosplash2 --defaultinput");
 
                 int i=0;
@@ -459,12 +474,21 @@ show_menu_nandroid_restore(const char *selected_restore)
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
 
-#ifdef HAS_INTERNALSD		
+#if defined HAS_INTERNALSD
 				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
 #endif
-                	        
+
+#ifdef IS_ICONIA	
+				if (strcmp( items[i], "- [X] flexrom")  == 0) strcat(nandroid_command, " --flexrom");
+#endif                	        
 		i++;	
 		}
+				char usb_storage[64];
+    				property_get("usb_storage_sdcard.mounted", usb_storage, "");
+    				if(!strcmp(usb_storage, "true")) 
+				{
+				strcat(nandroid_command, " --usb");
+				}
 				strcat(nandroid_command, " -s ");
 				strlcat(nandroid_command, selected_restore, sizeof(nandroid_command));				
 				ui_print("Restore: %s\n", selected_restore);
@@ -1215,11 +1239,14 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#ifdef HAS_INTERNALSD
+#if defined HAS_INTERNALSD 
 				"- [ ] .android_secure_internalsd",
 #endif
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
+#endif
+#ifdef IS_ICONIA
+				"- [X] flexrom",
 #endif
 				"- [ ] compress_backup",
 				"- Perform Backup",
@@ -1234,11 +1261,14 @@ show_menu_nandroid()
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
-#ifdef HAS_INTERNALSD
+#if defined HAS_INTERNALSD 
 				"- [X] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
 				"- [X] wimax",
+#endif
+#ifdef IS_ICONIA
+				"- [X] flexrom",
 #endif
 				"- [X] compress_backup",
 				"- Perform Backup",
@@ -1253,11 +1283,14 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#ifdef HAS_INTERNALSD
+#if defined HAS_INTERNALSD 
 				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
 				"- [ ] wimax",
+#endif
+#ifdef IS_ICONIA
+				"- [ ] flexrom",
 #endif
 				"- [ ] compress_backup",
 				"- Perform Backup",
@@ -1301,10 +1334,12 @@ show_menu_nandroid()
             ui_end_menu();
 #if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
 	    if (chosen_item < 10) {
-#elif defined (HAS_INTERNALSD)
+#elif defined (HAS_INTERNALSD) 
             if (chosen_item < 9) {
 #elif defined (HAS_WIMAX)
-			if (chosen_item < 9) {
+	    if (chosen_item < 9) {
+#elif defined (IS_ICONIA) 
+	    if (chosen_item < 9) {
 #else
             if (chosen_item < 8) {
 #endif
@@ -1317,10 +1352,13 @@ show_menu_nandroid()
 #if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
 			} else if (chosen_item == 11) {
 		return;
-#elif defined (HAS_INTERNALSD)
+#elif defined (HAS_INTERNALSD) 
 			} else if (chosen_item == 10) {
 		return; 
 #elif defined (HAS_WIMAX)
+			} else if (chosen_item == 10) {
+		return;
+#elif defined (IS_ICONIA)
 			} else if (chosen_item == 10) {
 		return; 
 #else
@@ -1330,7 +1368,7 @@ show_menu_nandroid()
 
 		} else {
 
-	      char nandroid_command[1024];
+	      char nandroid_command[PATH_MAX];
 	      strcpy(nandroid_command, "/sbin/nandroid-mobile.sh -b --nomisc --nosplash1 --nosplash2 --defaultinput");
 
                 int i=0;
@@ -1350,12 +1388,22 @@ show_menu_nandroid()
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
 
-#ifdef HAS_INTERNALSD		
+#if defined HAS_INTERNALSD 
 				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
 #endif
-                	        
+
+#ifdef IS_ICONIA		
+				if (strcmp( items[i], "- [X] flexrom")  == 0) strcat(nandroid_command, " --flexrom");
+#endif                	        
 		i++;	
 		}
+				ensure_root_path_mounted("SDCARD:");
+				char usb_storage[64];
+    				property_get("usb_storage_sdcard.mounted", usb_storage, "");
+    				if(!strcmp(usb_storage, "true")) 
+				{
+				strcat(nandroid_command, " --usb");
+				}
 
 			run_script("\nCreate Nandroid backup?",
 				   "\nPerforming backup : ",
@@ -2194,12 +2242,14 @@ show_menu_other()
 #define ITEM_OTHER_RE2SD  2
 #define ITEM_OTHER_KEY_TEST 3
 #define ITEM_OTHER_BATTERY_LEVEL 4
+#define ITEM_OTHER_CREDITS 5
 
     static char* items[] = { "- Return",
 			     "- Fix Permissions",
 			     "- Move recovery.log to SD",
                              "- Debugging Test Key Codes",
 			     "- Check Battery Level",
+			     "- Source & Credits",
 			     NULL };
 
     ui_start_menu(headers, items);
@@ -2271,6 +2321,10 @@ show_menu_other()
 				check_my_battery_level();
 				break;
 		
+		case ITEM_OTHER_CREDITS:
+				source_and_credits();
+				break;
+
 		}
 
             // if we didn't return from this function to reboot, show
@@ -2391,9 +2445,8 @@ static void
 create_mount_items(char *items[],int item)
 {
 	int i=0;
-	
 	static char* roots[] = { 
-				
+				"RETURN",
 				"SYSTEM:",
 				"CACHE:",
 				"DATA:",
@@ -2402,7 +2455,7 @@ create_mount_items(char *items[],int item)
              	NULL};
 	
 	static char* items_m[] = { 
-				
+				"- Return",
 				"- Mount /system",
 				"- Mount /cache",
 				"- Mount /data",
@@ -2411,7 +2464,7 @@ create_mount_items(char *items[],int item)
 		NULL};
 	
 	static char* items_u[] = { 
-								
+				"- Return",				
 				"- Unmount /system",
 				"- Unmount /cache",
 				"- Unmount /data",
@@ -2423,19 +2476,30 @@ create_mount_items(char *items[],int item)
 	{
 		if (item!=-1&&i==item)
 		{
-			// Mounted ?
-			if (is_root_path_mounted(roots[i]))
-				ensure_root_path_unmounted(roots[i]);
-			else
-				ensure_root_path_mounted(roots[i]);
+			if (strcmp( roots[i], "RETURN") != 0)
+			{
+				// Mounted ?
+				if (is_root_path_mounted(roots[i]))
+					ensure_root_path_unmounted(roots[i]);
+				else
+					ensure_root_path_mounted(roots[i]);
+			}
 		 }	
-					
 		
-		if (is_root_path_mounted(roots[i]))
-			items[i]=items_u[i];
-		else
-			items[i]=items_m[i];
-	   		
+		
+		if (strcmp( roots[i], "RETURN") != 0)
+		{
+			if (is_root_path_mounted(roots[i]))
+				items[i]=items_u[i];
+			else
+				items[i]=items_m[i];
+	   	}
+		
+		if (strcmp( roots[i], "RETURN") == 0)	
+		{
+			items[i]=items_u[i];	
+		}
+	
 		i++;
 	}
 }
@@ -2449,7 +2513,7 @@ show_menu_mount()
 			       "",
 			       NULL };
 				   
-	char* items[]={NULL,NULL,NULL,NULL,NULL,NULL};
+	char* items[]={NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 	
 	create_mount_items(items,-1);
 	ui_start_menu(headers, items);
@@ -2481,7 +2545,11 @@ show_menu_mount()
 		}
 	}	
         
-	if (chosen_item >= 0) {
+	if (chosen_item == 0) {
+	  return;
+	}
+
+	if (chosen_item > 0) {
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
@@ -2492,6 +2560,7 @@ show_menu_mount()
             // if we didn't return from this function to reboot, show
             // the menu again.
             ui_start_menu(headers, items);
+	    selected = 0;
             chosen_item = -1;
 
             finish_recovery(NULL);
@@ -3119,7 +3188,7 @@ show_menu_developer()
 			int confirm_su_super = ui_wait_key();
 			int action_confirm_su_super = device_handle_key(confirm_su_super, 1);
     				if (action_confirm_su_super == SELECT_ITEM) {
-				install_su(0);
+					install_su(0);
 				} else {
 					 ui_print("\nInstall of su & superuser aborted.\n\n");
 				}
@@ -3396,6 +3465,10 @@ main(int argc, char **argv)
     ui_print("Build : ");
     ui_print(prop_value);
     ui_print("\n");
+
+#ifdef IS_ICONIA
+    exec_itsmagic();
+#endif
 
     get_args(&argc, &argv);
     

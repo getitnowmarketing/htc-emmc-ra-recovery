@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/mount.h>
+#include <cutils/properties.h>
 
 #include "mounts.h"
 
@@ -207,6 +208,9 @@ unmount_mounted_volume(const MountedVolume *volume)
      */
     int ret = umount(volume->mount_point);
     if (ret == 0) {
+        if (strcmp(volume->device, "/dev/block/sda1") == 0) {
+         property_set("usb_storage_sdcard.mounted", "false");
+	}   
         free_volume_internals(volume, 1);
         return 0;
     }
