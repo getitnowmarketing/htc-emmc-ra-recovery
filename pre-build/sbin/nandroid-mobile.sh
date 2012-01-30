@@ -161,6 +161,29 @@ DEFAULTLEVEL="-1"
 
 ASSUMEDEFAULTUSERINPUT=0
 
+unmount_all()
+{
+	CHECK=`mount | grep /sdcard`
+    	if [ "$CHECK" != "" ]; then
+	umount /sdcard 2>/dev/null
+	fi
+
+	CHECK=`mount | grep /system`
+    	if [ "$CHECK" != "" ]; then
+	umount /system 2>/dev/null
+	fi
+
+	CHECK=`mount | grep /data`
+    	if [ "$CHECK" != "" ]; then
+	umount /data 2>/dev/null
+	fi
+	
+	CHECK=`mount | grep /flexrom`
+    	if [ "$CHECK" != "" ]; then
+	umount /flexrom 2>/dev/null
+	fi
+}
+
 echo2log()
 {
     if [ -e /cache/recovery/log ]; then
@@ -1373,6 +1396,7 @@ if [ "$NOANDROID_SECURE_INTERNAL" == 0 ]; then
 		     fi
 		fi
 		$ECHO "Restore done"
+		unmount_all
 		exit 0
 fi
 

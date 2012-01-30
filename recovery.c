@@ -1483,33 +1483,52 @@ void show_choose_zip_menu()
 
 }
 
-#ifdef HAS_INTERNAL_SD
+#if defined (HAS_INTERNAL_SD) || defined (HAS_DATA_MEDIA_SDCARD)
 void show_choose_zip_menu_internal()
 {
+
+#ifdef HAS_DATA_MEDIA_SDCARD
+    if (ensure_root_path_mounted("DATA:") != 0) {
+        LOGE ("Can't mount /data/media\n");
+        return;
+    }
+#else
     if (ensure_root_path_mounted("INTERNALSD:") != 0) {
         LOGE ("Can't mount /internal_sdcard\n");
         return;
     }
+#endif
 
     static char* headers[] = {  "Choose a zip to apply",
 			        UNCONFIRM_TXT,
                                 "",
                                 NULL 
     };
-    
+#ifdef HAS_DATA_MEDIA_SDCARD
+    char* file = choose_file_menu("/data/media/", ".zip", headers);
+#else
     char* file = choose_file_menu("/internal_sdcard/", ".zip", headers);
-
+#endif
     if (file == NULL)
         return;
 
     char emmc_package_file[1024];
+#ifdef HAS_DATA_MEDIA_SDCARD
+    strcpy(emmc_package_file, "DATA:media/");
+    strcat(emmc_package_file,  file + strlen("/data/media/"));
+#else
     strcpy(emmc_package_file, "INTERNALSD:");
     strcat(emmc_package_file,  file + strlen("/internal_sdcard/"));
-
+#endif
     ui_end_menu();
 
     ui_print("\nInstall : ");
+#ifdef HAS_DATA_MEDIA_SDCARD
+    ui_print(file + strlen("/data/media/"));
+#else
     ui_print(file + strlen("/internal_sdcard/"));
+#endif
+
     ui_clear_key_queue();
     ui_print(" ? \nPress %s to confirm,", CONFIRM);
     ui_print("\nany other key to abort.\n");
@@ -1527,13 +1546,15 @@ void show_choose_zip_menu_internal()
                         ui_print("\nReboot via vol-up+vol-down or menu\n"
                                  "to complete installation.\n");
                     } else {
-                        ui_print("\nInstall from emmc complete.\n");
+                        ui_print("\nInstall from internal_sdcard complete.\n");
                     }
                 }
     } else {
         ui_print("\nInstallation aborted.\n");
     }
-
+#ifdef HAS_DATA_MEDIA_SDCARD
+	ensure_root_path_unmounted("DATA:");
+#endif
 }
 #endif
 
@@ -1561,8 +1582,12 @@ show_menu_wipe()
 #define ITEM_WIPE_ROT      10
 #define ITEM_WIPE_SDCARD   11
 
-#if defined (HAS_INTERNAL_SD) && !defined (USES_NAND_MTD)
+#if defined (HAS_INTERNAL_SD) && !defined (USES_NAND_MTD) && !defined (IS_ICONIA)
 #define ITEM_WIPE_INTERNAL 12
+#define ITEM_WIPE_EXT_TOGGLE 13
+
+#elif !defined (USES_NAND_MTD) && defined (IS_ICONIA)
+#define ITEM_WIPE_FLEXROM 12
 #define ITEM_WIPE_EXT_TOGGLE 13
 
 #elif !defined (USES_NAND_MTD) 
@@ -1585,8 +1610,11 @@ show_menu_wipe()
 			     "- Wipe battery stats",
                              "- Wipe rotate settings",
 			     "- Wipe Sdcard",
-#if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD)
+#if !defined(USES_NAND_MTD) && defined (HAS_INTERNAL_SD) && !defined (IS_ICONIA)
 			     "- Wipe Internal_sd",
+			     "- Toggle Ext Full Wipe",
+#elif !defined (USES_NAND_MTD) && defined (IS_ICONIA)
+			     "- Wipe Flexrom",
 			     "- Toggle Ext Full Wipe",
 #elif !defined (USES_NAND_MTD)
 			     "- Toggle Ext Full Wipe",
@@ -1647,6 +1675,9 @@ show_menu_wipe()
                         erase_root("SDCARD:.android_secure");
 #ifdef HAS_INTERNAL_SD
 			erase_root("INTERNALSD:.android_secure");
+#endif
+#ifdef IS_ICONIA
+			erase_root("FLEXROM:");
 #endif
                         erase_root("CACHE:");
 
@@ -1882,6 +1913,23 @@ show_menu_wipe()
 		case ITEM_WIPE_EXT_TOGGLE:
 			toggle_full_ext_format();
 			break;
+#endif
+#ifdef IS_ICONIA
+		case ITEM_WIPE_FLEXROM:
+		    ui_clear_key_queue();
+		    ui_print("\nWipe Flexrom");
+                    ui_print("\nPress %s to confirm,", CONFIRM);
+                    ui_print("\nany other key to abort.\n\n");
+                    int confirm_wipe_flex = ui_wait_key();
+                    int action_confirm_wipe_flex = device_handle_key(confirm_wipe_flex, 1);
+    		    if (action_confirm_wipe_flex == SELECT_ITEM) {
+                        erase_root("FLEXROM:");
+                        ui_print("Flexrom wipe complete!\n\n");
+                    } else {
+                        ui_print("Flexrom wipe aborted!\n\n");
+                    }
+                    if (!ui_text_visible()) return;
+                    break;
 #endif
             }
 
@@ -2356,13 +2404,13 @@ show_menu_flash()
 #define ITEM_FLASH_EXIT 0
 #define ITEM_FLASHZIP 1
 #define ITEM_FLASH_TOGGLE 2
-#ifdef HAS_INTERNAL_SD
+#if defined (HAS_INTERNAL_SD) || defined (HAS_DATA_MEDIA_SDCARD)
 #define ITEM_FLASH_INTERNAL  3
 #endif
     static char* items[] = { "- Return",
 			     "- Choose zip from sdcard",
                              "- Toggle signature verification",
-#ifdef HAS_INTERNAL_SD
+#if defined (HAS_INTERNAL_SD) || defined (HAS_DATA_MEDIA_SDCARD)
 			     "- Choose zip from internal_sd",
 #endif
 				NULL };
@@ -2411,7 +2459,7 @@ show_menu_flash()
         	        show_choose_zip_menu();
         	        break;
 		
-#ifdef HAS_INTERNAL_SD		
+#if defined (HAS_INTERNAL_SD) || defined (HAS_DATA_MEDIA_SDCARD)		
 		case ITEM_FLASH_INTERNAL:
 			show_choose_zip_menu_internal();
         	        break;
@@ -2579,7 +2627,13 @@ static void
 show_menu_ext4_data()
 {
 
-    static char* headers[] = { "Choose  item,",
+    static char* headers[] = { 
+#ifdef IS_ICONIA
+			       "Advanced: Do Not Use Unless Familiar",
+			       "With Command Line To Repair FS",
+			       "",
+#endif 				      
+			       "Choose  item,",
 			       UNCONFIRM_TXT,
 				   "",
 			       NULL };
@@ -3462,6 +3516,7 @@ main(int argc, char **argv)
     preinit_setup();
     
     ui_init();
+    ui_print("RA Revamped\n");
     ui_print("Build : ");
     ui_print(prop_value);
     ui_print("\n");

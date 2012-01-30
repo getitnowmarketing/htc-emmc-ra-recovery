@@ -378,15 +378,15 @@ mmc_format_ext3 (const MmcPartition *partition) {
     strcpy(device, partition->device_index);
     
     static char mke2fs_cmd[PATH_MAX];
-    sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    sprintf(mke2fs_cmd,"%s -t ext3 -b 4096 %s", MKE2FS_BIN, device);
     __system(mke2fs_cmd);
-	
+/*	
     static char tune2fs_cmd[PATH_MAX];
     sprintf(tune2fs_cmd,"%s -C 1 %s", TUNE2FS_BIN, device);
     __system(tune2fs_cmd);
-
+*/
     static char e2fsck_cmd[PATH_MAX];
-    sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    sprintf(e2fsck_cmd,"%s -fp %s", E2FSCK_BIN, device);
     __system(e2fsck_cmd);
 
     return 0;
@@ -396,15 +396,15 @@ int
 format_ext3_device(const char *device)
 {
 	static char mke2fs_cmd[PATH_MAX];
-    	sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    	sprintf(mke2fs_cmd,"%s -t ext3 -b 4096 %s", MKE2FS_BIN, device);
     	__system(mke2fs_cmd);
-
+/*
 	static char tune2fs_cmd[PATH_MAX];
     	sprintf(tune2fs_cmd,"%s -C 1 %s", TUNE2FS_BIN, device);
     	__system(tune2fs_cmd);
-
+*/
     	static char e2fsck_cmd[PATH_MAX];
-    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	sprintf(e2fsck_cmd,"%s -fp %s", E2FSCK_BIN, device);
     	__system(e2fsck_cmd);
 
 	return 0;
@@ -417,15 +417,19 @@ mmc_format_ext4 (const MmcPartition *partition) {
     strcpy(device, partition->device_index);
     
     static char mke2fs_cmd[PATH_MAX];
-    sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    sprintf(mke2fs_cmd,"%s -t ext3 -b 4096 %s", MKE2FS_BIN, device);
     __system(mke2fs_cmd);
+
+    static char e2fsck3_cmd[PATH_MAX];
+    sprintf(e2fsck3_cmd,"%s -fp %s", E2FSCK_BIN, device);
+    __system(e2fsck3_cmd);
 	
     static char tune2fs_cmd[PATH_MAX];
-    sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index %s", TUNE2FS_BIN, device);
     __system(tune2fs_cmd);
     
     static char e2fsck_cmd[PATH_MAX];
-    sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    sprintf(e2fsck_cmd,"%s -fpDC0 %s", E2FSCK_BIN, device);
     __system(e2fsck_cmd);
 
     return 0;
@@ -436,15 +440,19 @@ format_ext4_device(const char *device)
 {
 
 	static char mke2fs_cmd[PATH_MAX];
-    	sprintf(mke2fs_cmd,"%s -j -b 4096 %s", MKE2FS_BIN, device);
+    	sprintf(mke2fs_cmd,"%s -t ext3 -b 4096 %s", MKE2FS_BIN, device);
     	__system(mke2fs_cmd);
+
+	static char e2fsck3_cmd[PATH_MAX];
+    	sprintf(e2fsck3_cmd,"%s -fp %s", E2FSCK_BIN, device);
+    	__system(e2fsck3_cmd);
 	
 	static char tune2fs_cmd[PATH_MAX];
-    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index %s", TUNE2FS_BIN, device);
     	__system(tune2fs_cmd);
 
     	static char e2fsck_cmd[PATH_MAX];
-    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	sprintf(e2fsck_cmd,"%s -fpDC0 %s", E2FSCK_BIN, device);
     	__system(e2fsck_cmd);
 
 	return 0;
@@ -456,11 +464,11 @@ mmc_upgrade_ext3 (const MmcPartition *partition) {
     strcpy(device, partition->device_index);
      
     static char tune2fs_cmd[PATH_MAX];
-    sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index %s", TUNE2FS_BIN, device);
     __system(tune2fs_cmd);
     
     static char e2fsck_cmd[PATH_MAX];
-    sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    sprintf(e2fsck_cmd,"%s -fpDC0 %s", E2FSCK_BIN, device);
     __system(e2fsck_cmd);
 
     return 0;
@@ -470,11 +478,11 @@ int
 device_upgrade_ext3(const char *device)
 {
 	static char tune2fs_cmd[PATH_MAX];
-    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index -C 1 %s", TUNE2FS_BIN, device);
+    	sprintf(tune2fs_cmd,"%s -O extents,uninit_bg,dir_index %s", TUNE2FS_BIN, device);
     	__system(tune2fs_cmd);
     
     	static char e2fsck_cmd[PATH_MAX];
-    	sprintf(e2fsck_cmd,"%s -fy %s", E2FSCK_BIN, device);
+    	sprintf(e2fsck_cmd,"%s -fpDC0 %s", E2FSCK_BIN, device);
     	__system(e2fsck_cmd);
 
 	return 0;
