@@ -523,16 +523,16 @@ format_root_device(const char *root)
        	    	mmc_scan_partitions();
        	    	const MmcPartition *partition;
             	partition = mmc_find_partition_by_name(info->partition_name);
-        if (partition == NULL) {
-          if (!strcmp(info->partition_name, "boot")) {
+        if (partition != NULL) {
+          if (!strcmp(partition->name, "boot")) {
 		  return format_raw_partition(root);
        		}
 	}
-	if (!strcmp(partition->name, "boot")) {
+       }
+	if (!strcmp(info->partition_name, "boot")) {
 		return format_raw_partition(root);
 	}
     }
-}
 #endif
 
     return format_non_mtd_device(root);
