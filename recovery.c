@@ -1481,6 +1481,7 @@ void show_choose_zip_menu()
         ui_print("\nInstallation aborted.\n");
     }
 
+	ensure_root_path_unmounted("SDCARD:");
 }
 
 #if defined (HAS_INTERNAL_SD) || defined (HAS_DATA_MEDIA_SDCARD)
@@ -3488,6 +3489,10 @@ main(int argc, char **argv)
             return setprop_main(argc, argv);
 	if (strstr(argv[0], "getprop"))
             return getprop_main(argc, argv);
+#ifdef IS_ICONIA
+	if (strstr(argv[0], "itsmagic"))
+            return itsmagic_main(argc, argv);
+#endif
 
 #ifdef USES_NAND_MTD
 	if (strstr(argv[0], "flash_image") != NULL)
