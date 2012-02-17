@@ -325,7 +325,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [X] .android_secure",
-#if defined HAS_INTERNALSD
+#if defined HAS_INTERNAL_SD
 				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
@@ -346,7 +346,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
-#if defined HAS_INTERNALSD
+#if defined HAS_INTERNAL_SD
 				"- [X] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
@@ -367,7 +367,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#if defined HAS_INTERNALSD 
+#ifdef HAS_INTERNAL_SD 
 				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
@@ -416,15 +416,13 @@ show_menu_nandroid_restore(const char *selected_restore)
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
-#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+#if defined (HAS_INTERNAL_SD) && defined (HAS_WIMAX)
 	    if (chosen_item < 9) {
-#elif defined (HAS_INTERNALSD) 
+#elif defined (HAS_INTERNAL_SD) 
             if (chosen_item < 8) {
 #elif defined (HAS_WIMAX)
 	    if (chosen_item < 8) {
 #elif defined (IS_ICONIA)
-	    if (chosen_item < 8) {
-#elif defined (USE_USB_STORAGE)
 	    if (chosen_item < 8) {
 #else
             if (chosen_item < 7) {
@@ -435,10 +433,10 @@ show_menu_nandroid_restore(const char *selected_restore)
 	           } else {
 	               items[chosen_item]=items_in[chosen_item];
 	           }
-#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+#if defined (HAS_INTERNAL_SD) && defined (HAS_WIMAX)
 			} else if (chosen_item == 10) {
 		return;
-#elif defined (HAS_INTERNALSD)
+#elif defined (HAS_INTERNAL_SD)
 			} else if (chosen_item == 9) {
 		return; 
 #elif defined (HAS_WIMAX)
@@ -474,7 +472,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
 
-#if defined HAS_INTERNALSD
+#ifdef HAS_INTERNAL_SD
 				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
 #endif
 
@@ -492,7 +490,7 @@ show_menu_nandroid_restore(const char *selected_restore)
 				strcat(nandroid_command, " -s ");
 				strlcat(nandroid_command, selected_restore, sizeof(nandroid_command));				
 				ui_print("Restore: %s\n", selected_restore);
-
+				
 			run_script("\nRestore backup ?",
 				   "\nRestoring : ",
 				   nandroid_command,
@@ -811,7 +809,15 @@ choose_clockwork_file()
             if (action_confirm == SELECT_ITEM) {
                       
                             ui_print("\nRestoring : ");
-       		            char cw_nandroid_command[200]="/sbin/nandroid-mobile.sh -r -e -a --cwmcompat --norecovery --nomisc --nosplash1 --nosplash2 --defaultinput -s ";
+       		            char cw_nandroid_command[PATH_MAX]="/sbin/nandroid-mobile.sh -r -e -a --cwmcompat --norecovery --nomisc --nosplash1 --nosplash2 --defaultinput";
+			    char usb_storage[64];
+    				property_get("usb_storage_sdcard.mounted", usb_storage, "");
+    				if(!strcmp(usb_storage, "true")) 
+				{
+				strcat(cw_nandroid_command, " --usb");
+				}
+
+			    strcat(cw_nandroid_command, " -s ");
 
 			    strlcat(cw_nandroid_command, list[chosen_item], sizeof(cw_nandroid_command));
 
@@ -1239,7 +1245,7 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#if defined HAS_INTERNALSD 
+#ifdef HAS_INTERNAL_SD 
 				"- [ ] .android_secure_internalsd",
 #endif
 #ifdef HAS_WIMAX		
@@ -1261,7 +1267,7 @@ show_menu_nandroid()
 				"- [X] recovery",
 				"- [X] sd-ext",
 				"- [X] .android_secure",
-#if defined HAS_INTERNALSD 
+#ifdef HAS_INTERNAL_SD 
 				"- [X] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
@@ -1283,7 +1289,7 @@ show_menu_nandroid()
 				"- [ ] recovery",
 				"- [ ] sd-ext",
 				"- [ ] .android_secure",
-#if defined HAS_INTERNALSD 
+#ifdef HAS_INTERNAL_SD 
 				"- [ ] .android_secure_internalsd",
 #endif				
 #ifdef HAS_WIMAX		
@@ -1332,9 +1338,9 @@ show_menu_nandroid()
             // turn off the menu, letting ui_print() to scroll output
             // on the screen.
             ui_end_menu();
-#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+#if defined (HAS_INTERNAL_SD) && defined (HAS_WIMAX)
 	    if (chosen_item < 10) {
-#elif defined (HAS_INTERNALSD) 
+#elif defined (HAS_INTERNAL_SD) 
             if (chosen_item < 9) {
 #elif defined (HAS_WIMAX)
 	    if (chosen_item < 9) {
@@ -1349,10 +1355,10 @@ show_menu_nandroid()
 	           } else {
 	               items[chosen_item]=items_in[chosen_item];
 	           }
-#if defined (HAS_INTERNALSD) && defined (HAS_WIMAX)
+#if defined (HAS_INTERNAL_SD) && defined (HAS_WIMAX)
 			} else if (chosen_item == 11) {
 		return;
-#elif defined (HAS_INTERNALSD) 
+#elif defined (HAS_INTERNAL_SD) 
 			} else if (chosen_item == 10) {
 		return; 
 #elif defined (HAS_WIMAX)
@@ -1388,7 +1394,7 @@ show_menu_nandroid()
 				if (strcmp( items[i], "- [X] wimax")  == 0) strcat(nandroid_command, " --wimax");
 #endif
 
-#if defined HAS_INTERNALSD 
+#ifdef HAS_INTERNAL_SD 
 				if (strcmp( items[i], "- [X] .android_secure_internalsd")  == 0) strcat(nandroid_command, " --android_secure_internal");
 #endif
 

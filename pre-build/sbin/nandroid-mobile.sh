@@ -854,9 +854,10 @@ fi
 if [ "$RESTORE" == 1 ]; then
 
                 umount /sdcard 2>/dev/null
-
-		if ["$USB_STORAGE" == "1" ]; then
-		mount -t vfat -o noatime,nodiratime,nodev /dev/block/sda1 /sdcard 
+		
+		if [ "$USB_STORAGE" == "1" ]; then
+		mount -t vfat -o noatime,nodiratime,nodev /dev/block/sda1 /sdcard
+		$ECHO "Mounted usb sdcard" 
 		else
 		mount /sdcard 2>/dev/null
 		fi
