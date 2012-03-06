@@ -858,7 +858,7 @@ const char* check_extfs_format(const char* root_path)
         return NULL;
     	}
 
-static char discard1[1024];
+        static char discard1[1024];
         char device1[64], name1[64], type1[64];
         FILE *mountsf = fopen("/proc/mounts", "r");
  	
@@ -1182,6 +1182,9 @@ int symlink_toolbox()
 	__system("ln -s /sbin/recovery /sbin/dump_image");
 	__system("ln -s /sbin/recovery /sbin/erase_image");
 #endif	
+#ifdef IS_ICONIA
+	__system("ln -s /sbin/recovery /sbin/itsmagic");
+#endif
 
 return 0;
 }

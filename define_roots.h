@@ -82,8 +82,21 @@
 #define RECOVERYBLK "/dev/block/mmcblk0p1"
 #define SYSTEMBLK "/dev/block/mmcblk0p3"
 #define FLEXBLK "/dev/block/mmcblk0p6"
-// aboot /dev/block/mmcblk0p8
-
 
 #endif
 
+#ifdef PARTITION_LAYOUT_HOLIDAY
+
+/* Layout for HTC HOLIDAY */
+/* re-added as MMC partitions > 35 are not detected */
+
+#define BOOTBLK "/dev/block/mmcblk0p22"
+#define CACHEBLK "/dev/block/mmcblk0p35"
+#define DATABLK "/dev/block/mmcblk0p34"
+#define MISCBLK "/dev/block/mmcblk0p24"
+#define RECOVERYBLK "/dev/block/mmcblk0p23"
+#define SYSTEMBLK "/dev/block/mmcblk0p29"
+
+#define INTERNALSDBLK "/dev/block/mmcblk0p36"
+
+#endif

@@ -24,6 +24,9 @@ else
 LOCAL_SRC_FILES += ui.c
 endif
 
+ifeq ($(ACER_ICONIA),true)      
+LOCAL_SRC_FILES += itsmagic.c
+endif 
         
 LOCAL_SRC_FILES += test_roots.c
 
