@@ -1185,6 +1185,9 @@ int symlink_toolbox()
 #ifdef IS_ICONIA
 	__system("ln -s /sbin/recovery /sbin/itsmagic");
 #endif
+#ifdef HBOOT_SON_KERNEL
+	__system("ln -s /sbin/recovery /sbin/misctool");
+#endif
 
 return 0;
 }

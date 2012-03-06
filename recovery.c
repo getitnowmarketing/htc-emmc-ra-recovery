@@ -3508,6 +3508,10 @@ main(int argc, char **argv)
 	if (strstr(argv[0], "erase_image") != NULL)
 	    return erase_image_main(argc, argv);
 #endif
+#ifdef HBOOT_SON_KERNEL
+	if (strstr(argv[0], "misctool"))
+        return misctool_main(argc, argv);
+#endif
 
      }
 

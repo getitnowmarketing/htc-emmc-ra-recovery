@@ -93,6 +93,7 @@ endif
 
 ifeq ($(KERNEL_FLASH_SON),true)
 LOCAL_CFLAGS += -DHBOOT_SON_KERNEL
+LOCAL_SRC_FILES += misctool.c
 endif 
 
 ifeq ($(RECOVERY_COLOR_SCHEME),)
