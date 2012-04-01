@@ -1,7 +1,13 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := graphics.c resources.c
+LOCAL_SRC_FILES := resources.c
+
+ifeq ($(BOARD_USES_TWENTYFOUR_BIT_FB),true)
+LOCAL_SRC_FILES += gfx.c
+else
+LOCAL_SRC_FILES += graphics.c
+endif 
 
 ifeq ($(ENABLE_TOUCH_UI),true)       
 LOCAL_SRC_FILES += events_touch.c 

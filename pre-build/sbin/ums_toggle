@@ -21,7 +21,7 @@ case $1 in
 
 	echo `$GETPROP ro.sdcard.block` > `$GETPROP ro.ums.path`
 	
-	if [ `$GETPROP ro.product.board` == "bryce" ]; then
+	if [ `$GETPROP ro.product.board` == "bryce" -o `$GETPROP ro.product.board` == "lge_bryce2" ]; then
 		echo mass_storage > /sys/module/android/parameters/usb_mode
 	fi
 	
@@ -31,7 +31,7 @@ case $1 in
 	sync
 	echo "" > `$GETPROP ro.ums.path`
 
-	if [ `$GETPROP ro.product.board` == "bryce" ]; then
+	if [ `$GETPROP ro.product.board` == "bryce" -o `$GETPROP ro.product.board` == "lge_bryce2" ]; then
 		echo internet_connection > /sys/module/android/parameters/usb_mode
 	fi
 

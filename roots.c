@@ -602,6 +602,19 @@ int get_device_index(const char *root, char *device)
 		if ((!strcmp(device_tmp, "/dev/block/sda1")) && info->device2 != NULL) {
 			strcpy(device, info->device2);
 			return 0;
+#ifdef PARTITION_LAYOUT_VIGOR
+		} else if (!strcmp(info->name, "INTERNALSD:")) { 
+			
+			struct stat st;
+
+			if ((0 == stat("/dev/block/mmcblk0p38", &st)) && info->device2 != NULL) {
+				strcpy(device, info->device2);
+				return 0;
+			} else {
+				strcpy(device, info->device);
+				return 0;
+			}
+#endif			   
 		} else {
 			strcpy(device, info->device);
 			return 0;

@@ -179,9 +179,11 @@ get_args(int *argc, char ***argv) {
         LOGI("Boot status: %.*s\n", sizeof(boot.status), boot.status);
     }
 
+    struct stat file_info;
+
     // --- if arguments weren't supplied, look in the bootloader control block
-    if (*argc <= 1) {
-        boot.recovery[sizeof(boot.recovery) - 1] = '\0';  // Ensure termination
+    if (*argc <= 1 && 0 != stat("/tmp/.ignorebootmessage", &file_info)) {
+         boot.recovery[sizeof(boot.recovery) - 1] = '\0';  // Ensure termination
         const char *arg = strtok(boot.recovery, "\n");
         if (arg != NULL && !strcmp(arg, "recovery")) {
             *argv = (char **) malloc(sizeof(char *) * MAX_ARGS);

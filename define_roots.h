@@ -29,6 +29,7 @@
 #define SYSTEMBLK "/dev/block/mmcblk0p29"
 
 #define INTERNALSDBLK "/dev/block/mmcblk0p37"
+#define INTERNALSDBLK2 "/dev/block/mmcblk0p38"
 
 #endif
 
@@ -49,15 +50,14 @@
 #ifdef PARTITION_LAYOUT_SHOOTER
 
 /* Layout for HTC SHOOTER */
-/* No Longer used for HTC as partitions are dynamically detected via g_mmc_device */
-/*
+
 #define BOOTBLK "/dev/block/mmcblk0p21"
 #define CACHEBLK "/dev/block/mmcblk0p25"
 #define DATABLK "/dev/block/mmcblk0p24"
 #define MISCBLK "/dev/block/mmcblk0p34"
 #define RECOVERYBLK "/dev/block/mmcblk0p22"
 #define SYSTEMBLK "/dev/block/mmcblk0p23"
-*/
+
 #endif
 
 #ifdef PARTITION_LAYOUT_LGE_BRYCE
@@ -98,5 +98,18 @@
 #define SYSTEMBLK "/dev/block/mmcblk0p29"
 
 #define INTERNALSDBLK "/dev/block/mmcblk0p36"
+
+#endif
+
+#ifdef PARTITION_LAYOUT_BRYCE2
+
+/* Layout for LGE SPECTRUM */
+
+#define BOOTBLK "/dev/block/mmcblk0p8"
+#define CACHEBLK "/dev/block/mmcblk0p27"
+#define DATABLK "/dev/block/mmcblk0p28"
+#define MISCBLK "/dev/block/mmcblk0p25"
+#define RECOVERYBLK "/dev/block/mmcblk0p13"
+#define SYSTEMBLK "/dev/block/mmcblk0p26"
 
 #endif
